@@ -7,52 +7,49 @@ import (
 	"github.com/Meeyok-Chat/backend/middleware"
 	"github.com/Meeyok-Chat/backend/repository/cache"
 	"github.com/Meeyok-Chat/backend/repository/database"
-	"github.com/Meeyok-Chat/backend/repository/queue/queuePublisher"
 	"github.com/Meeyok-Chat/backend/routes"
 	"github.com/Meeyok-Chat/backend/services/chat"
+	"github.com/Meeyok-Chat/backend/services/user"
 	Websocket "github.com/Meeyok-Chat/backend/services/websocket"
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	// Initialize a new Redis client. (Cache)
+	// Initialize a new client.
 	redisClient, err := configs.NewRedisClient()
 	if err != nil {
 		log.Fatalf("Could not create Redis client: %v", err)
 	}
-	// Initialize a new MongoDB client. (Database)
 	mongoClient, err := configs.NewMongoClient()
 	if err != nil {
 		log.Fatalf("Could not create MongoDB client: %v", err)
 	}
 
-	// Initialize a new queue publisher
-	queuePublisher := queuePublisher.NewQueuePublisher()
-
 	// Initialize a new chat repository
-	chatRepo := database.NewChatRepo(mongoClient.Chats, mongoClient.BackupChats)
-	// Initialize a new cache repository
+	chatRepo := database.NewChatRepo(mongoClient.Chats)
 	cacheRepo := cache.NewCacheRepo(redisClient)
+	userRepo := database.NewUserRepo(mongoClient.User)
+
 	// Initialize a new chat service
 	chatService := chat.NewChatService(chatRepo)
-	go chatService.HandleBackupChat()
+	userService := user.NewUserService(userRepo)
 
 	// Initialize a websocket manager
-	websocketManager := Websocket.NewManagerService(cacheRepo, chatRepo, queuePublisher)
-	// go websocketManager.SummaryChat()
+	websocketManager := Websocket.NewManagerService(cacheRepo, chatRepo)
 
-	middleware := middleware.NewAuthMiddleware(chatService)
-
-	// Initialize a queue manager
-	// queueReceiver := queueReceiver.NewConsumerManager(websocketManager, cacheRepo)
-	// go queueReceiver.ReadResult()
-	// go queueReceiver.ReadDLQ()
+	// Initialize a new client for firebase authentication
+	middleware := middleware.NewAuthMiddleware(userService)
+	client, err := middleware.InitAuth()
+	if err != nil {
+		log.Fatalf("Error initializing Firebase auth: %v", err)
+	}
 
 	// Initialize a routes
 	r := gin.Default()
 	r.Use(configs.EnableCORS())
-	routes.WebsocketRoute(r, middleware, websocketManager, chatService)
-	routes.ChatRoute(r, middleware, chatService, websocketManager)
+	routes.WebsocketRoute(r, middleware, client, websocketManager, chatService)
+	routes.ChatRoute(r, middleware, client, userService, chatService, websocketManager)
+	routes.UserRoute(r, middleware, client, userService)
 
 	log.Fatal(r.Run(":" + configs.GetEnv("CHATBOT_PORT")))
 }

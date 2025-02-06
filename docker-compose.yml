@@ -9,5 +9,7 @@ services:
     container_name: go
     stdin_open: true
     tty: true
+    ports:
+      - 8000:8000
     env_file:
       - ./.env

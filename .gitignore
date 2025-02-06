@@ -36,3 +36,7 @@ go.sum
 
 # Firebase private key for authentication
 private_key.json
+
+# frontend test
+frontend
+frontend_1

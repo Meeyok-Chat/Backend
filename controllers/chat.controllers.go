@@ -3,10 +3,10 @@ package controllers
 import (
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/Meeyok-Chat/backend/models"
 	"github.com/Meeyok-Chat/backend/services/chat"
+	"github.com/Meeyok-Chat/backend/services/user"
 	Websocket "github.com/Meeyok-Chat/backend/services/websocket"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -14,28 +14,24 @@ import (
 
 type chatController struct {
 	chatService      chat.ChatService
+	userService      user.UserService
 	websocketManager Websocket.ManagerService
 }
 
 type ChatController interface {
 	GetChats(c *gin.Context)
 	GetChatById(c *gin.Context)
-	GetChatsByBatchId(c *gin.Context)
 	CreateChat(c *gin.Context)
+	AddUsersToChat(c *gin.Context)
 	UpdateChat(c *gin.Context)
-	UpdateChatStatus(c *gin.Context)
 	DeleteChat(c *gin.Context)
 	GetMessages(c *gin.Context)
-	SetPrompt(c *gin.Context)
-	GetBackupChats(c *gin.Context)
-	// summary sheet
-	GetSummarysheetByChatId(c *gin.Context)
-	UpdateSummarysheetByChatId(c *gin.Context)
 }
 
-func NewChatController(chatService chat.ChatService, websocketManager Websocket.ManagerService) ChatController {
+func NewChatController(chatService chat.ChatService, userService user.UserService, websocketManager Websocket.ManagerService) ChatController {
 	return &chatController{
 		chatService:      chatService,
+		userService:      userService,
 		websocketManager: websocketManager,
 	}
 }
@@ -50,12 +46,7 @@ func (cc *chatController) GetChats(c *gin.Context) {
 }
 
 func (cc *chatController) GetChatById(c *gin.Context) {
-	chatId, exists := c.Get("chat")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Chat not found"})
-		return
-	}
-	id := chatId.(primitive.ObjectID)
+	chatId := c.Param("id")
 
 	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
 	if err != nil {
@@ -69,23 +60,12 @@ func (cc *chatController) GetChatById(c *gin.Context) {
 		return
 	}
 
-	chat, err := cc.chatService.GetChatById(id, page, numberOfMessages)
+	chat, err := cc.chatService.GetChatById(chatId, page, numberOfMessages)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, chat)
-}
-
-func (cc *chatController) GetChatsByBatchId(c *gin.Context) {
-	batchId := c.Params.ByName("batchId")
-
-	chats, err := cc.chatService.GetChatsByBatchId(batchId)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, chats)
 }
 
 func (cc *chatController) CreateChat(c *gin.Context) {
@@ -100,7 +80,42 @@ func (cc *chatController) CreateChat(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, chat.ID)
+
+	err = cc.userService.AddChatToUser(chat.Users, chat.ID.Hex())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Chat created"})
+}
+
+func (cc *chatController) AddUsersToChat(c *gin.Context) {
+	chatID := c.Param("id")
+	if chatID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "chatID is required"})
+		return
+	}
+
+	var req struct {
+		Users []string `json:"users"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+
+	err := cc.chatService.AddUsersToChat(chatID, req.Users)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+	err = cc.userService.AddChatToUser(req.Users, chatID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Users added to chat successfully"})
 }
 
 func (cc *chatController) UpdateChat(c *gin.Context) {
@@ -125,31 +140,9 @@ func (cc *chatController) UpdateChat(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Chat updated"})
 }
 
-func (cc *chatController) UpdateChatStatus(c *gin.Context) {
-	chatId, exists := c.Get("chat")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Chat not found"})
-		return
-	}
-	id := chatId.(primitive.ObjectID)
-
-	status := c.Params.ByName("status")
-	if err := cc.chatService.UpdateChatStatus(id, status, time.Time{}); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"message": "Chat status updated"})
-}
-
 func (cc *chatController) DeleteChat(c *gin.Context) {
-	chatId, exists := c.Get("chat")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Chat not found"})
-		return
-	}
-	id := chatId.(primitive.ObjectID)
-
-	if err := cc.chatService.DeleteChat(id); err != nil {
+	chatId := c.Param("id")
+	if err := cc.chatService.DeleteChat(chatId); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
@@ -162,7 +155,7 @@ func (cc *chatController) GetMessages(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Chat not found"})
 		return
 	}
-	id := chatId.(primitive.ObjectID)
+	id := chatId.(string)
 
 	page, err := strconv.Atoi(c.DefaultQuery("page", "0"))
 	if err != nil {
@@ -183,74 +176,4 @@ func (cc *chatController) GetMessages(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, messages)
-}
-
-func (cc *chatController) SetPrompt(c *gin.Context) {
-	chatId, exists := c.Get("chat")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Chat not found"})
-		return
-	}
-	id := chatId.(primitive.ObjectID)
-
-	version, err := strconv.Atoi(c.Params.ByName("version"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request parameter"})
-		return
-	}
-
-	err = cc.chatService.UpdatePromptVersion(id, version)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"message": "Prompt version updated"})
-}
-
-func (cc *chatController) GetBackupChats(c *gin.Context) {
-	chats, err := cc.chatService.GetBackupChats()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, chats)
-}
-
-func (cc *chatController) GetSummarysheetByChatId(c *gin.Context) {
-	chatId, exists := c.Get("chat")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Chat not found"})
-		return
-	}
-	id := chatId.(primitive.ObjectID)
-
-	summartSheet, err := cc.chatService.GetSummarysheetByChatId(id)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, summartSheet)
-}
-
-func (cc *chatController) UpdateSummarysheetByChatId(c *gin.Context) {
-	chatId := c.Params.ByName("id")
-	id, err := primitive.ObjectIDFromHex(chatId)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request parameter"})
-		return
-	}
-
-	summartSheet := models.SummarySheet{}
-	if err := c.ShouldBindJSON(&summartSheet); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
-		return
-	}
-
-	if err := cc.chatService.UpdateSummarysheet(id, summartSheet); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-		return
-	}
-
-	cc.websocketManager.NewSummarySheetHandler(chatId)
-	c.JSON(http.StatusOK, gin.H{"message": "Summary Sheet updated"})
 }

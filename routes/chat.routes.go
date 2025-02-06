@@ -1,32 +1,30 @@
 package routes
 
 import (
+	"firebase.google.com/go/v4/auth"
 	"github.com/Meeyok-Chat/backend/controllers"
 	"github.com/Meeyok-Chat/backend/middleware"
 	"github.com/Meeyok-Chat/backend/services/chat"
+	"github.com/Meeyok-Chat/backend/services/user"
 	Websocket "github.com/Meeyok-Chat/backend/services/websocket"
 	"github.com/gin-gonic/gin"
 )
 
-func ChatRoute(r *gin.Engine, middleware middleware.AuthMiddleware, chatService chat.ChatService, websocketManager Websocket.ManagerService) {
-	chatController := controllers.NewChatController(chatService, websocketManager)
+func ChatRoute(r *gin.Engine, middleware middleware.AuthMiddleware, client *auth.Client, userService user.UserService, chatService chat.ChatService, websocketManager Websocket.ManagerService) {
+	chatController := controllers.NewChatController(chatService, userService, websocketManager)
 
 	rgc := r.Group("/chat")
-	rgc.Use(middleware.Auth())
+	rgc.Use(middleware.Auth(client))
 	{
-		rgc.GET("all", chatController.GetChats)
-		rgc.GET("", chatController.GetChatById)
-		rgc.GET("/batch/:batchId", chatController.GetChatsByBatchId)
+		rgc.GET("", chatController.GetChats)
+		rgc.GET("/:id", chatController.GetChatById)
+
 		rgc.POST("", chatController.CreateChat)
-		rgc.PATCH("", chatController.UpdateChat)
-		rgc.PATCH("/status/:status", chatController.UpdateChatStatus)
-		rgc.DELETE("", chatController.DeleteChat)
-		rgc.GET("/message", chatController.GetMessages)
-		rgc.POST("/prompt/:version", chatController.SetPrompt)
+		rgc.PATCH("/addusers/:id", chatController.AddUsersToChat)
 
-		rgc.GET("/backup", chatController.GetBackupChats)
+		rgc.PATCH("/:id", chatController.UpdateChat)
+		rgc.DELETE("/:id", chatController.DeleteChat)
 
-		rgc.GET("/summarysheet", chatController.GetSummarysheetByChatId)
+		// rgc.GET("/message", chatController.GetMessages)
 	}
-	r.PATCH("/chat/summarysheet/:id", chatController.UpdateSummarysheetByChatId)
 }

@@ -20,7 +20,6 @@ type CacheRepo interface {
 	UpdateChatCache(chatId string, chatData models.Chat)
 	UpdateMessagesCache(chatId string, messages []models.Message) error
 	AppendMessageCache(chatId string, message models.Message) error
-	UpdateProvidePromptDataCache(chatId string, providePromptData models.ProvidePromptData) error
 	UpdateClientCache(chatId string, clientData models.ClientData)
 	CheckCache(chatId string) (models.CacheData, error)
 }
@@ -81,16 +80,6 @@ func (c *cacheRepo) AppendMessageCache(chatId string, message models.Message) er
 		return fmt.Errorf("error : cannot append message, because there is no chat (%s) in cache", chatId)
 	}
 	cacheData.ChatData.Messages = append(cacheData.ChatData.Messages, message)
-	c.UpdateCache(cacheData.ChatData, cacheData.ClientData)
-	return nil
-}
-
-func (c *cacheRepo) UpdateProvidePromptDataCache(chatId string, providePromptData models.ProvidePromptData) error {
-	cacheData, err := c.CheckCache(chatId)
-	if err != nil {
-		return fmt.Errorf("error : cannot update provide prompt data, because there is no chat (%s) in cache", chatId)
-	}
-	cacheData.ChatData.ProvidePromptData = providePromptData
 	c.UpdateCache(cacheData.ChatData, cacheData.ClientData)
 	return nil
 }

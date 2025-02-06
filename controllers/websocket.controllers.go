@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
 
 	"github.com/Meeyok-Chat/backend/configs"
 	"github.com/Meeyok-Chat/backend/services/chat"
@@ -42,7 +41,7 @@ func (ws *websocketController) checkOrigin(r *http.Request) bool {
 }
 
 func (ws *websocketController) InitWebsocket(c *gin.Context) {
-	chatId, exists := c.Get("chat")
+	chatId, exists := c.Get("user")
 	if !exists {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Chat not found"})
 		return
@@ -59,23 +58,7 @@ func (ws *websocketController) InitWebsocket(c *gin.Context) {
 
 // serveWS is a HTTP Handler that has the Manager that allows connections
 func (ws *websocketController) ServeWS(c *gin.Context) {
-	encryptedToken := c.Param("token")
-
-	encryptedToken = strings.Replace(encryptedToken, "-", "+", -1)
-	encryptedToken = strings.Replace(encryptedToken, "_", "/", -1)
-	encryptedToken = strings.Replace(encryptedToken, ".", "=", -1)
-
-	token, err := ws.chatService.DecryptTokenFromFrontend(encryptedToken)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid token"})
-		return
-	}
-
-	_, id, err := ws.chatService.DecryptToken(token)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid token"})
-		return
-	}
+	id := c.Params.ByName("id")
 
 	// Begin by upgrading the HTTP request
 	websocketUpgrader := websocket.Upgrader{

@@ -13,6 +13,7 @@ type Client struct {
 	ClientData ClientData
 	Connection *websocket.Conn
 	Egress     chan Event
+	Chatroom   string
 }
 
 type ClientData struct {
@@ -49,4 +50,8 @@ type UpdateFeedbackEvent struct {
 
 type SendStatusEvent struct {
 	Status string `json:"status"`
+}
+
+type ChangeRoomEvent struct {
+	Name string `json:"name"`
 }
