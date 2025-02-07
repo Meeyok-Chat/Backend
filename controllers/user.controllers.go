@@ -38,11 +38,7 @@ func (uc userController) GetUsers(c *gin.Context) {
 }
 
 func (uc userController) GetUserByID(c *gin.Context) {
-	id, err := primitive.ObjectIDFromHex(c.Params.ByName("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request parameter"})
-		return
-	}
+	id := c.Params.ByName("id")
 
 	result, err := uc.userService.GetUserByID(id)
 	if err != nil {

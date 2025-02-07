@@ -12,7 +12,7 @@ type userService struct {
 
 type UserService interface {
 	GetUsers() ([]models.User, error)
-	GetUserByID(id primitive.ObjectID) (models.User, error)
+	GetUserByID(id string) (models.User, error)
 	GetUserByUsername(username string) (models.User, error)
 	CreateUser(user models.User) error
 	AddChatToUser(userIDs []string, chatID string) error
@@ -34,7 +34,7 @@ func (us userService) GetUsers() ([]models.User, error) {
 	return result, nil
 }
 
-func (us userService) GetUserByID(id primitive.ObjectID) (models.User, error) {
+func (us userService) GetUserByID(id string) (models.User, error) {
 	result, err := us.userRepo.GetUserByID(id)
 	if err != nil {
 		return models.User{}, err

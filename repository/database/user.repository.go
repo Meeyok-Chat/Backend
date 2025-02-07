@@ -18,7 +18,7 @@ type userRepo struct {
 
 type UserRepo interface {
 	GetUsers() ([]models.User, error)
-	GetUserByID(id primitive.ObjectID) (models.User, error)
+	GetUserByID(id string) (models.User, error)
 	GetUserByUsername(username string) (models.User, error)
 	CreateUser(user models.User) error
 	AddChatToUser(userID string, chatID string) error
@@ -49,14 +49,18 @@ func (r *userRepo) GetUsers() ([]models.User, error) {
 	return results, nil
 }
 
-func (r *userRepo) GetUserByID(id primitive.ObjectID) (models.User, error) {
+func (r *userRepo) GetUserByID(id string) (models.User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	u := models.User{}
+	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		log.Fatalf("Invalid ObjectID: %v", err)
+	}
 
-	filter := bson.M{"_id": id}
-	err := r.database.FindOne(ctx, filter).Decode(&u)
+	u := models.User{}
+	filter := bson.M{"_id": objID}
+	err = r.database.FindOne(ctx, filter).Decode(&u)
 	if err != nil {
 		return models.User{}, err
 	}

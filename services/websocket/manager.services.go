@@ -29,6 +29,7 @@ type managerService struct {
 	clients   models.ClientList
 	cacheRepo cache.CacheRepo
 	chatRepo  database.ChatRepo
+	userRepo  database.UserRepo
 	// Using a syncMutex here to be able to lcok state before editing clients
 	// Could also use Channels to block
 	sync.RWMutex
@@ -38,20 +39,21 @@ type managerService struct {
 
 // Manager is used to hold references to all Clients Registered, and Broadcasting etc
 type ManagerService interface {
-	AddClient(conn *websocket.Conn, c *gin.Context, chatId string)
+	AddClient(conn *websocket.Conn, c *gin.Context, userID string)
 	RemoveClient(client *models.Client)
 	RouteEvent(event models.Event, c *models.Client) error
-	CheckOldClient(chatId string) error
+	CheckOldClient(userID string) error
 	GetClients() models.ClientList
-	SendMessage(event models.Event, c *models.Client) error
+	// SendMessage(event models.Event, c *models.Client) error
 }
 
 // NewManager is used to initalize all the values inside the manager
-func NewManagerService(cacheRepo cache.CacheRepo, chatRepo database.ChatRepo) ManagerService {
+func NewManagerService(cacheRepo cache.CacheRepo, chatRepo database.ChatRepo, userRepo database.UserRepo) ManagerService {
 	m := &managerService{
 		clients:   make(models.ClientList),
 		cacheRepo: cacheRepo,
 		chatRepo:  chatRepo,
+		userRepo:  userRepo,
 		handlers:  make(map[string]models.EventHandler),
 	}
 	m.setupEventHandlers()
@@ -78,7 +80,7 @@ func (ms *managerService) RouteEvent(event models.Event, c *models.Client) error
 	}
 }
 
-func (ms *managerService) CheckOldClient(chatId string) error {
+func (ms *managerService) CheckOldClient(userID string) error {
 	// Check if there is an existing client for the same chat and wait for it to be removed
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -87,7 +89,7 @@ func (ms *managerService) CheckOldClient(chatId string) error {
 		existingClientFound := false
 
 		for client := range ms.clients {
-			if client.Chat.ID.Hex() == chatId {
+			if client.User.ID.Hex() == userID {
 				existingClientFound = true
 				break
 			}
@@ -100,7 +102,7 @@ func (ms *managerService) CheckOldClient(chatId string) error {
 		select {
 		case <-ctx.Done():
 			// Timeout after 10 seconds
-			return fmt.Errorf("failed to remove existing client for chat: %s within timeout", chatId)
+			return fmt.Errorf("failed to remove existing client for chat: %s within timeout", userID)
 		default:
 			log.Println("Waiting for existing client to be removed")
 			time.Sleep(500 * time.Millisecond)
@@ -110,26 +112,15 @@ func (ms *managerService) CheckOldClient(chatId string) error {
 }
 
 // addClient will add clients to our clientList
-func (ms *managerService) AddClient(conn *websocket.Conn, c *gin.Context, chatId string) {
-	chat, err := ms.chatRepo.GetChatById(chatId)
+func (ms *managerService) AddClient(conn *websocket.Conn, c *gin.Context, userID string) {
+	user, err := ms.userRepo.GetUserByID(userID)
 	if err != nil {
 		log.Println(err)
 	}
+	log.Println("New connection with userID : " + user.ID.Hex())
 
-	log.Println("New connection with chatId : " + string(chatId))
-
-	cacheData, cacheErr := ms.cacheRepo.CheckCache(chatId)
-
-	log.Println("Key :", chatId)
-	// get chat from database and set that chat in cache. (UpdateChatCache)
-	ms.cacheRepo.UpdateChatCache(chatId, chat)
-
-	chat.Messages = []models.Message{}
 	// Create New Client
-	clientService := NewClientService(chat, conn, ms)
-	if cacheErr == nil {
-		clientService.GetClient().ClientData = cacheData.ClientData
-	}
+	clientService := NewClientService(user, conn, ms)
 
 	go clientService.ReadMessages()
 	go clientService.WriteMessages()
@@ -150,44 +141,20 @@ func (ms *managerService) RemoveClient(client *models.Client) {
 	// Check if Client exists, then delete it
 	if _, ok := ms.clients[client]; ok {
 		// Store data into database
-		ms.chatRepo.UploadChat(client.Chat)
+		// ms.chatRepo.UploadChat(client.User)
 		// close connection
 		if client.Connection != nil {
 			client.Connection.Close()
 		}
-		log.Println("close connection for :", client.Chat.ID.Hex())
+		log.Println("close connection for :", client.User.ID.Hex())
 		// remove
 		delete(ms.clients, client)
-		log.Println("delete client for :", client.Chat.ID.Hex())
+		log.Println("delete client for :", client.User.ID.Hex())
 	}
 }
 
 // Event
-func (es *managerService) sendMessageHandler(event models.Event, c *models.Client) error {
-	// chat event
-	var sendMessageEventChat models.SendMessageEvent
-	if err := json.Unmarshal(event.Payload, &sendMessageEventChat); err != nil {
-		log.Printf("error unmarshalling payload: %v", err)
-		return err
-	}
-
-	sendMessageEventChat.From = "user"
-
-	updatedPayload, err := json.Marshal(sendMessageEventChat)
-	if err != nil {
-		log.Printf("error marshalling updated payload: %v", err)
-		return err
-	}
-	event.Payload = updatedPayload
-	es.SendMessage(event, c)
-
-	c.ClientData.Message = c.ClientData.Message + " " + sendMessageEventChat.Message
-	es.cacheRepo.UpdateClientCache(c.Chat.ID.Hex(), c.ClientData)
-	return nil
-}
-
-// SendMessageHandler will send out a message to all other participants in the chat
-func (es *managerService) SendMessage(event models.Event, c *models.Client) error {
+func (ms *managerService) sendMessageHandler(event models.Event, c *models.Client) error {
 	// Marshal Payload into wanted format
 	var chatevent models.SendMessageEvent
 	if err := json.Unmarshal(event.Payload, &chatevent); err != nil {
@@ -207,13 +174,13 @@ func (es *managerService) SendMessage(event models.Event, c *models.Client) erro
 	}
 
 	// Store the message
-	newMessage := es.chatRepo.NewMessage(chatevent.From, message, chatevent.Phase, chatevent.Reasoning)
+	newMessage := ms.chatRepo.NewMessage(message)
 
 	// manage new message
 	c.Chat.Messages = append(c.Chat.Messages, newMessage)
-	es.cacheRepo.AppendMessageCache(c.Chat.ID.Hex(), newMessage)
+	ms.cacheRepo.AppendMessageCache(c.Chat.ID.Hex(), newMessage)
 
-	data, err := json.Marshal(newMessage)
+	data, err := json.Marshal(chatevent)
 	if err != nil {
 		return fmt.Errorf("failed to marshal broadcast message: %v", err)
 	}
@@ -223,16 +190,24 @@ func (es *managerService) SendMessage(event models.Event, c *models.Client) erro
 	outgoingEvent.Payload = data
 	outgoingEvent.Type = EventNewMessage
 
-	for client := range es.clients {
-		// Only send to clients inside the same chatroom
-		if client.Chatroom == c.Chatroom {
-			client.Egress <- outgoingEvent
+	// Get Chat
+	chat, err := ms.chatRepo.GetChatByID(chatevent.ChatID)
+	if err != nil {
+		return fmt.Errorf("failed to get chat")
+	}
+
+	for client := range ms.clients {
+		for _, userID := range chat.Users {
+			// Only send to clients inside the same chatroom
+			if client.User.ID.Hex() == userID {
+				client.Egress <- outgoingEvent
+			}
 		}
 	}
 	return nil
 }
 
-func (es *managerService) chatRoomHandler(event models.Event, c *models.Client) error {
+func (ms *managerService) chatRoomHandler(event models.Event, c *models.Client) error {
 	// Marshal Payload into wanted format
 	var changeRoomEvent models.ChangeRoomEvent
 	if err := json.Unmarshal(event.Payload, &changeRoomEvent); err != nil {
@@ -240,7 +215,11 @@ func (es *managerService) chatRoomHandler(event models.Event, c *models.Client) 
 	}
 
 	// Add Client to chat room
-	c.Chatroom = changeRoomEvent.Name
+	chat, err := ms.chatRepo.GetChatByID(changeRoomEvent.ID)
+	if err != nil {
+		log.Println(err)
+	}
+	c.Chat = chat
 
 	return nil
 }

@@ -19,9 +19,9 @@ type chatRepo struct {
 
 type ChatRepo interface {
 	NewChat(id primitive.ObjectID) models.Chat
-	NewMessage(role string, msg string, phase string, reasoning string) models.Message
+	NewMessage(msg string) models.Message
 	GetChats() ([]models.Chat, error)
-	GetChatById(id string) (models.Chat, error)
+	GetChatByID(id string) (models.Chat, error)
 	CreateChat(chat models.Chat) (models.Chat, error)
 	AddUsersToChat(chatID string, users []string) error
 	UpdateChat(chat models.Chat) error
@@ -45,7 +45,7 @@ func (r *chatRepo) NewChat(id primitive.ObjectID) models.Chat {
 	return chat
 }
 
-func (r *chatRepo) NewMessage(role string, msg string, phase string, reasoing string) models.Message {
+func (r *chatRepo) NewMessage(msg string) models.Message {
 	message := models.Message{
 		ID:        primitive.NewObjectID(),
 		Message:   msg,
@@ -71,7 +71,7 @@ func (r *chatRepo) GetChats() ([]models.Chat, error) {
 	return results, nil
 }
 
-func (r *chatRepo) GetChatById(id string) (models.Chat, error) {
+func (r *chatRepo) GetChatByID(id string) (models.Chat, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 

@@ -30,10 +30,10 @@ type ClientService interface {
 }
 
 // NewClient is used to initialize a new Client with all required values initialized
-func NewClientService(chat models.Chat, conn *websocket.Conn, manager ManagerService) ClientService {
+func NewClientService(user models.User, conn *websocket.Conn, manager ManagerService) ClientService {
 	return &clientService{
 		client: &models.Client{
-			Chat:       chat,
+			User:       user,
 			ClientData: models.ClientData{},
 			Connection: conn,
 			Egress:     make(chan models.Event),

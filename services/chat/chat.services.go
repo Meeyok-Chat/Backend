@@ -35,7 +35,7 @@ func (cs *chatService) GetChats() ([]models.Chat, error) {
 }
 
 func (cs *chatService) GetChatById(id string, page int, numberOfMessages int) (models.Chat, error) {
-	chat, err := cs.chatRepo.GetChatById(id)
+	chat, err := cs.chatRepo.GetChatByID(id)
 	if err != nil {
 		return models.Chat{}, err
 	}
@@ -47,7 +47,7 @@ func (cs *chatService) GetChatById(id string, page int, numberOfMessages int) (m
 }
 
 func (cs *chatService) GetMessages(id string, page int, numberOfMessages int) ([]models.Message, error) {
-	chat, err := cs.chatRepo.GetChatById(id)
+	chat, err := cs.chatRepo.GetChatByID(id)
 	if err != nil {
 		return nil, err
 	}

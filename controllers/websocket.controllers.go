@@ -10,7 +10,6 @@ import (
 	Websocket "github.com/Meeyok-Chat/backend/services/websocket"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type websocketController struct {
@@ -41,14 +40,14 @@ func (ws *websocketController) checkOrigin(r *http.Request) bool {
 }
 
 func (ws *websocketController) InitWebsocket(c *gin.Context) {
-	chatId, exists := c.Get("user")
+	userID, exists := c.Get("user")
 	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Chat not found"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "User not found"})
 		return
 	}
-	id := chatId.(primitive.ObjectID)
+	id := userID.(string)
 
-	if err := ws.websocketManagerService.CheckOldClient(id.Hex()); err != nil {
+	if err := ws.websocketManagerService.CheckOldClient(id); err != nil {
 		c.Error(fmt.Errorf("error creating client: %w", err))
 		c.JSON(http.StatusBadRequest, gin.H{"result": "fail"})
 		return
@@ -58,7 +57,7 @@ func (ws *websocketController) InitWebsocket(c *gin.Context) {
 
 // serveWS is a HTTP Handler that has the Manager that allows connections
 func (ws *websocketController) ServeWS(c *gin.Context) {
-	id := c.Params.ByName("id")
+	userID := c.Param("userID")
 
 	// Begin by upgrading the HTTP request
 	websocketUpgrader := websocket.Upgrader{
@@ -74,5 +73,5 @@ func (ws *websocketController) ServeWS(c *gin.Context) {
 	}
 
 	// Add the newly created client to the manager
-	ws.websocketManagerService.AddClient(conn, c, id)
+	ws.websocketManagerService.AddClient(conn, c, userID)
 }

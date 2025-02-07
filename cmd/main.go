@@ -35,7 +35,7 @@ func main() {
 	userService := user.NewUserService(userRepo)
 
 	// Initialize a websocket manager
-	websocketManager := Websocket.NewManagerService(cacheRepo, chatRepo)
+	websocketManager := Websocket.NewManagerService(cacheRepo, chatRepo, userRepo)
 
 	// Initialize a new client for firebase authentication
 	middleware := middleware.NewAuthMiddleware(userService)

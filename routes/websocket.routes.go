@@ -13,5 +13,5 @@ func WebsocketRoute(r *gin.Engine, middleware middleware.AuthMiddleware, client 
 	websocketController := controllers.NewWebsocketController(managerService, chatService)
 
 	r.GET("/initWs", middleware.Auth(client), websocketController.InitWebsocket)
-	r.GET("/ws/:token", websocketController.ServeWS)
+	r.GET("/ws/:userID", websocketController.ServeWS)
 }
