@@ -49,12 +49,12 @@ func (uc userController) GetUserByID(c *gin.Context) {
 }
 
 func (uc userController) GetUserByToken(c *gin.Context) {
-	username, ok := c.Get("user")
+	email, ok := c.Get("email")
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "User not found"})
 		return
 	}
-	result, err := uc.userService.GetUserByUsername(username.(string))
+	result, err := uc.userService.GetUserByEmail(email.(string))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return

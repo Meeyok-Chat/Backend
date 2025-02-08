@@ -19,7 +19,7 @@ type userRepo struct {
 type UserRepo interface {
 	GetUsers() ([]models.User, error)
 	GetUserByID(id string) (models.User, error)
-	GetUserByUsername(username string) (models.User, error)
+	GetUserByEmail(email string) (models.User, error)
 	CreateUser(user models.User) error
 	AddChatToUser(userID string, chatID string) error
 	UpdateUser(user models.User) error
@@ -67,13 +67,13 @@ func (r *userRepo) GetUserByID(id string) (models.User, error) {
 	return u, nil
 }
 
-func (r *userRepo) GetUserByUsername(username string) (models.User, error) {
+func (r *userRepo) GetUserByEmail(email string) (models.User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	u := models.User{}
 
-	filter := bson.M{"username": username}
+	filter := bson.M{"email": email}
 	err := r.database.FindOne(ctx, filter).Decode(&u)
 	if err != nil {
 		return models.User{}, err
@@ -86,11 +86,11 @@ func (r *userRepo) CreateUser(user models.User) error {
 	defer cancel()
 
 	// Check if a user with the same username already exists
-	filter := bson.M{"username": user.Username}
+	filter := bson.M{"email": user.Email}
 	existingUser := models.User{}
 	err := r.database.FindOne(ctx, filter).Decode(&existingUser)
 	if err == nil {
-		return fmt.Errorf("username '%s' is already taken", user.Username)
+		return fmt.Errorf("email '%s' is already taken", user.Email)
 	}
 
 	user.ID = primitive.NewObjectID()

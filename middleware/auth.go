@@ -84,10 +84,10 @@ func (s authMiddleware) processToken(ctx *gin.Context, client *auth.Client, toke
 	role, ok := token.Claims["role"].(string)
 
 	if !ok {
-		user, err := s.userService.GetUserByUsername(email)
+		user, err := s.userService.GetUserByEmail(email)
 		if err != nil {
 			if email == adminEmail {
-				err2 := s.userService.CreateUser(models.User{Username: adminEmail, Role: "admin"})
+				err2 := s.userService.CreateUser(models.User{Email: adminEmail, Role: "admin"})
 				if err2 != nil {
 					log.Printf("Error creating user: %v\n", err2)
 					ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
@@ -105,7 +105,7 @@ func (s authMiddleware) processToken(ctx *gin.Context, client *auth.Client, toke
 				log.Println("Admin role assigned in:", time.Since(startTime))
 				role = "admin"
 			} else {
-				err2 := s.userService.CreateUser(models.User{Username: email, Role: "user"})
+				err2 := s.userService.CreateUser(models.User{Email: email, Role: "user"})
 				if err2 != nil {
 					log.Printf("Error creating user: %v\n", err2)
 					ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
@@ -136,7 +136,7 @@ func (s authMiddleware) processToken(ctx *gin.Context, client *auth.Client, toke
 		}
 	}
 
-	ctx.Set("user", email)
+	ctx.Set("email", email)
 	ctx.Set("role", role)
 	ctx.Set("token", tokenID)
 
@@ -223,11 +223,11 @@ func (s authMiddleware) AssignRole(ctx context.Context, client *auth.Client, c *
 		return errors.New("user not found")
 	}
 
-	userMongo, err := s.userService.GetUserByUsername(email)
+	userMongo, err := s.userService.GetUserByEmail(email)
 	if err != nil {
 		return fmt.Errorf("AssignRole Error: Error getting user: %w", err)
 	}
-	err2 := s.userService.UpdateUser(models.User{ID: userMongo.ID, Username: email, Role: role})
+	err2 := s.userService.UpdateUser(models.User{ID: userMongo.ID, Email: email, Role: role})
 	if err2 != nil {
 		return fmt.Errorf("AssignRole Error: Error updating user: %w", err2)
 	}
