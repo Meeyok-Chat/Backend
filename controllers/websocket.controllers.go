@@ -20,6 +20,7 @@ type websocketController struct {
 type WebsocketController interface {
 	InitWebsocket(c *gin.Context)
 	ServeWS(c *gin.Context)
+	GetClients(c *gin.Context)
 }
 
 func NewWebsocketController(websocketManagerService Websocket.ManagerService, chatService chat.ChatService) WebsocketController {
@@ -74,4 +75,9 @@ func (ws *websocketController) ServeWS(c *gin.Context) {
 
 	// Add the newly created client to the manager
 	ws.websocketManagerService.AddClient(conn, c, userID)
+}
+
+func (ws *websocketController) GetClients(c *gin.Context) {
+	users := ws.websocketManagerService.GetClients()
+	c.JSON(http.StatusOK, gin.H{"users": users})
 }

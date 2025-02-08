@@ -12,6 +12,10 @@ import (
 func WebsocketRoute(r *gin.Engine, middleware middleware.AuthMiddleware, client *auth.Client, managerService Websocket.ManagerService, chatService chat.ChatService) {
 	websocketController := controllers.NewWebsocketController(managerService, chatService)
 
-	r.GET("/initWs", middleware.Auth(client), websocketController.InitWebsocket)
-	r.GET("/ws/:userID", websocketController.ServeWS)
+	rgw := r.Group("/ws")
+	{
+		rgw.GET("/init", middleware.Auth(client), websocketController.InitWebsocket)
+		rgw.GET("/:userID", websocketController.ServeWS)
+		rgw.GET("/clients", websocketController.GetClients)
+	}
 }

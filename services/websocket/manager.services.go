@@ -35,6 +35,7 @@ type ManagerService interface {
 	RemoveClient(client *models.Client)
 	RouteEvent(event models.Event, c *models.Client) error
 	CheckOldClient(userID string) error
+	GetClients() []models.User
 }
 
 // NewManager is used to initalize all the values inside the manager
@@ -120,6 +121,18 @@ func (ms *managerService) AddClient(conn *websocket.Conn, c *gin.Context, userID
 
 	// Add Client
 	ms.clients[clientService.GetClient()] = true
+}
+
+func (ms *managerService) GetClients() []models.User {
+	var users []models.User
+	for client := range ms.clients {
+		users = append(users, client.User)
+	}
+
+	if users == nil {
+		return []models.User{}
+	}
+	return users
 }
 
 // removeClient will remove the client and clean up
