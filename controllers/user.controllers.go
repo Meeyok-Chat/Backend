@@ -17,8 +17,13 @@ type UserController interface {
 	GetUsers(c *gin.Context)
 	GetUserByID(c *gin.Context)
 	GetUserByToken(c *gin.Context)
+	GetUserByUsername(c *gin.Context)
+
 	CreateUser(c *gin.Context)
+
 	UpdateUser(c *gin.Context)
+	UpdateUsername(c *gin.Context)
+
 	DeleteUser(c *gin.Context)
 }
 
@@ -62,6 +67,17 @@ func (uc userController) GetUserByToken(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
+func (uc userController) GetUserByUsername(c *gin.Context) {
+	username := c.Param("username")
+
+	result, err := uc.userService.GetUserByUsername(username)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
+
 func (uc userController) CreateUser(c *gin.Context) {
 	userDTO := models.User{}
 	if err := c.ShouldBindJSON(&userDTO); err != nil {
@@ -91,6 +107,22 @@ func (uc userController) UpdateUser(c *gin.Context) {
 
 	userDTO.ID = id
 	if err := uc.userService.UpdateUser(userDTO); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "User updated"})
+}
+
+func (uc userController) UpdateUsername(c *gin.Context) {
+	userID := c.Param("id")
+
+	userDTO := models.User{}
+	if err := c.ShouldBindJSON(&userDTO); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+
+	if err := uc.userService.UpdateUsername(userID, userDTO.Username); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}

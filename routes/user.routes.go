@@ -18,9 +18,13 @@ func UserRoute(r *gin.Engine, middleware middleware.AuthMiddleware, client *auth
 
 		rgu.GET("", userController.GetUsers)
 		rgu.GET("/:id", userController.GetUserByID)
+		rgu.GET("/username/:username", userController.GetUserByUsername)
 
 		rgu.POST("", userController.CreateUser)
+
 		rgu.PUT("/:id", userController.UpdateUser)
+		rgu.PATCH("/username/:id", userController.UpdateUsername)
+
 		rgu.DELETE("/:id", userController.DeleteUser)
 	}
 }

@@ -81,13 +81,18 @@ func (s authMiddleware) processToken(ctx *gin.Context, client *auth.Client, toke
 	}
 	log.Println("auth email is ", email)
 
-	role, ok := token.Claims["role"].(string)
+	role, roleOk := token.Claims["role"].(string)
+	username, usernameOk := token.Claims["name"].(string)
 
-	if !ok {
+	if !usernameOk {
+		username = email
+	}
+
+	if !roleOk {
 		user, err := s.userService.GetUserByEmail(email)
 		if err != nil {
 			if email == adminEmail {
-				err2 := s.userService.CreateUser(models.User{Email: adminEmail, Role: "admin"})
+				err2 := s.userService.CreateUser(models.User{Email: adminEmail, Username: username, Role: "admin"})
 				if err2 != nil {
 					log.Printf("Error creating user: %v\n", err2)
 					ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
@@ -105,7 +110,7 @@ func (s authMiddleware) processToken(ctx *gin.Context, client *auth.Client, toke
 				log.Println("Admin role assigned in:", time.Since(startTime))
 				role = "admin"
 			} else {
-				err2 := s.userService.CreateUser(models.User{Email: email, Role: "user"})
+				err2 := s.userService.CreateUser(models.User{Email: email, Username: username, Role: "user"})
 				if err2 != nil {
 					log.Printf("Error creating user: %v\n", err2)
 					ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
@@ -223,14 +228,14 @@ func (s authMiddleware) AssignRole(ctx context.Context, client *auth.Client, c *
 		return errors.New("user not found")
 	}
 
-	userMongo, err := s.userService.GetUserByEmail(email)
-	if err != nil {
-		return fmt.Errorf("AssignRole Error: Error getting user: %w", err)
-	}
-	err2 := s.userService.UpdateUser(models.User{ID: userMongo.ID, Email: email, Role: role})
-	if err2 != nil {
-		return fmt.Errorf("AssignRole Error: Error updating user: %w", err2)
-	}
+	// userMongo, err := s.userService.GetUserByEmail(email)
+	// if err != nil {
+	// 	return fmt.Errorf("AssignRole Error: Error getting user: %w", err)
+	// }
+	// err2 := s.userService.UpdateUser(models.User{ID: userMongo.ID, Email: email, Role: role})
+	// if err2 != nil {
+	// 	return fmt.Errorf("AssignRole Error: Error updating user: %w", err2)
+	// }
 
 	currentCustomClaims := user.CustomClaims
 	if currentCustomClaims == nil {
