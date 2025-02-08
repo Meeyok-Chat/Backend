@@ -2,15 +2,16 @@ package models
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
 
+// Client
 type ClientList map[*Client]bool
 
 type Client struct {
 	User       User
-	Chat       Chat
 	ClientData ClientData
 	Connection *websocket.Conn
 	Egress     chan Event
@@ -22,6 +23,12 @@ type ClientData struct {
 	ServerStatus string `json:"serverStatus,omitempty"`
 }
 
+// Event
+const (
+	EventSendMessage = "send_message"
+	EventNewMessage  = "new_message"
+)
+
 type EventHandler func(event Event, c *Client) error
 
 type Event struct {
@@ -29,22 +36,9 @@ type Event struct {
 	Payload json.RawMessage `json:"payload"`
 }
 
-type StatusMessageEvent struct {
-	Status string `json:"status"`
-}
-
-// SendMessageEvent is the payload sent in the
-// send_message event
 type SendMessageEvent struct {
-	Message string `json:"message"`
-	From    string `json:"from"`
-	ChatID  string `json:"chat_id"`
-}
-
-type SendStatusEvent struct {
-	Status string `json:"status"`
-}
-
-type ChangeRoomEvent struct {
-	ID string `json:"id"`
+	ChatID    string    `json:"chat_id"`
+	Message   string    `json:"message"`
+	From      string    `json:"from"`
+	CreatedAt time.Time `json:"createAt"`
 }

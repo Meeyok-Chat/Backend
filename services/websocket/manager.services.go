@@ -17,14 +17,6 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// Event between client and server
-const (
-	EventSendMessage = "send_message"
-	EventNewMessage  = "new_message"
-
-	EventChangeRoom = "change_room"
-)
-
 type managerService struct {
 	clients   models.ClientList
 	cacheRepo cache.CacheRepo
@@ -43,8 +35,6 @@ type ManagerService interface {
 	RemoveClient(client *models.Client)
 	RouteEvent(event models.Event, c *models.Client) error
 	CheckOldClient(userID string) error
-	GetClients() models.ClientList
-	// SendMessage(event models.Event, c *models.Client) error
 }
 
 // NewManager is used to initalize all the values inside the manager
@@ -62,8 +52,7 @@ func NewManagerService(cacheRepo cache.CacheRepo, chatRepo database.ChatRepo, us
 
 // setupEventHandlers configures and adds all handlers
 func (ms *managerService) setupEventHandlers() {
-	ms.handlers[EventSendMessage] = ms.sendMessageHandler
-	ms.handlers[EventChangeRoom] = ms.chatRoomHandler
+	ms.handlers[models.EventSendMessage] = ms.sendMessageHandler
 }
 
 // routeEvent is used to make sure the correct event goes into the correct handler
@@ -173,12 +162,24 @@ func (ms *managerService) sendMessageHandler(event models.Event, c *models.Clien
 		message = chatevent.Message
 	}
 
+	chatevent.CreatedAt = time.Now()
+
+	// Get Chat
+	chat, err := ms.chatRepo.GetChatByID(chatevent.ChatID)
+	if err != nil {
+		return fmt.Errorf("failed to get chat")
+	}
+
 	// Store the message
-	newMessage := ms.chatRepo.NewMessage(message)
+	newMessage := ms.chatRepo.NewMessage(message, chatevent.From)
 
 	// manage new message
-	c.Chat.Messages = append(c.Chat.Messages, newMessage)
-	ms.cacheRepo.AppendMessageCache(c.Chat.ID.Hex(), newMessage)
+	chat.Messages = append(chat.Messages, newMessage)
+	err = ms.chatRepo.AppendMessage(chat.ID.Hex(), newMessage)
+	if err != nil {
+		return fmt.Errorf("failed to append new message to database: %v", err)
+	}
+	ms.cacheRepo.AppendMessageCache(chat.ID.Hex(), newMessage)
 
 	data, err := json.Marshal(chatevent)
 	if err != nil {
@@ -188,42 +189,14 @@ func (ms *managerService) sendMessageHandler(event models.Event, c *models.Clien
 	// Place payload into an Event
 	var outgoingEvent models.Event
 	outgoingEvent.Payload = data
-	outgoingEvent.Type = EventNewMessage
-
-	// Get Chat
-	chat, err := ms.chatRepo.GetChatByID(chatevent.ChatID)
-	if err != nil {
-		return fmt.Errorf("failed to get chat")
-	}
+	outgoingEvent.Type = models.EventNewMessage
 
 	for client := range ms.clients {
 		for _, userID := range chat.Users {
-			// Only send to clients inside the same chatroom
 			if client.User.ID.Hex() == userID {
 				client.Egress <- outgoingEvent
 			}
 		}
 	}
 	return nil
-}
-
-func (ms *managerService) chatRoomHandler(event models.Event, c *models.Client) error {
-	// Marshal Payload into wanted format
-	var changeRoomEvent models.ChangeRoomEvent
-	if err := json.Unmarshal(event.Payload, &changeRoomEvent); err != nil {
-		return fmt.Errorf("bad payload in request: %v", err)
-	}
-
-	// Add Client to chat room
-	chat, err := ms.chatRepo.GetChatByID(changeRoomEvent.ID)
-	if err != nil {
-		log.Println(err)
-	}
-	c.Chat = chat
-
-	return nil
-}
-
-func (ms *managerService) GetClients() models.ClientList {
-	return ms.clients
 }

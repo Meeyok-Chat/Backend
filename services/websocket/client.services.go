@@ -92,7 +92,7 @@ func (cs *clientService) ReadMessages() {
 // pongHandler is used to handle PongMessages for the Client
 func (cs *clientService) pongHandler(pongMsg string) error {
 	// Current time + Pong Wait time
-	log.Println("pong")
+	// log.Println("pong")
 	return cs.client.Connection.SetReadDeadline(time.Now().Add(pongWait))
 }
 
@@ -132,14 +132,13 @@ func (cs *clientService) WriteMessages() {
 
 			log.Println("sent message")
 		case <-ticker.C:
-			log.Println("ping")
+			// log.Println("ping")
 			// Send the Ping
 			if err := cs.client.Connection.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
 				log.Println("writemsg: ", err)
 				return // return to break this goroutine triggeing cleanup
 			}
 		}
-
 	}
 }
 

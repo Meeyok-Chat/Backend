@@ -18,15 +18,27 @@ type chatRepo struct {
 }
 
 type ChatRepo interface {
+	// New
 	NewChat(id primitive.ObjectID) models.Chat
-	NewMessage(msg string) models.Message
+	NewMessage(msg string, from string) models.Message
+
+	// Get
 	GetChats() ([]models.Chat, error)
 	GetChatByID(id string) (models.Chat, error)
+
+	// Create
 	CreateChat(chat models.Chat) (models.Chat, error)
+
+	// Manage
 	AddUsersToChat(chatID string, users []string) error
-	UpdateChat(chat models.Chat) error
-	DeleteChat(id string) error
+	AppendMessage(chatID string, message models.Message) error
 	UploadChat(chat models.Chat) error
+
+	// Update
+	UpdateChat(chat models.Chat) error
+
+	// Delete
+	DeleteChat(id string) error
 }
 
 func NewChatRepo(chatDb *mongo.Collection) ChatRepo {
@@ -45,9 +57,10 @@ func (r *chatRepo) NewChat(id primitive.ObjectID) models.Chat {
 	return chat
 }
 
-func (r *chatRepo) NewMessage(msg string) models.Message {
+func (r *chatRepo) NewMessage(msg string, from string) models.Message {
 	message := models.Message{
 		ID:        primitive.NewObjectID(),
+		From:      from,
 		Message:   msg,
 		CreatedAt: time.Now(),
 	}
@@ -140,6 +153,51 @@ func (r *chatRepo) AddUsersToChat(chatID string, users []string) error {
 	return nil
 }
 
+func (r *chatRepo) AppendMessage(chatID string, message models.Message) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	objID, err := primitive.ObjectIDFromHex(chatID)
+	if err != nil {
+		log.Fatalf("Invalid ObjectID: %v", err)
+	}
+
+	filter := bson.M{"_id": objID}
+	update := bson.M{
+		"$push": bson.M{
+			"messages": message,
+		},
+	}
+	updateOptions := options.Update().SetUpsert(true)
+	_, err = r.chatDb.UpdateOne(ctx, filter, update, updateOptions)
+	// log.Println("Uploading chat ", chatID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *chatRepo) UploadChat(chat models.Chat) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	filter := bson.M{"_id": chat.ID}
+	update := bson.M{
+		"$push": bson.M{
+			"messages": bson.M{
+				"$each": chat.Messages,
+			},
+		},
+	}
+	updateOptions := options.Update().SetUpsert(true)
+	_, err := r.chatDb.UpdateOne(ctx, filter, update, updateOptions)
+	log.Println("Uploading chat ", chat.ID.Hex())
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (r *chatRepo) UpdateChat(chat models.Chat) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -170,27 +228,6 @@ func (r *chatRepo) DeleteChat(id string) error {
 	}
 	if result.DeletedCount == 0 {
 		return fmt.Errorf("no chat found to delete")
-	}
-	return nil
-}
-
-func (r *chatRepo) UploadChat(chat models.Chat) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	filter := bson.M{"_id": chat.ID}
-	update := bson.M{
-		"$push": bson.M{
-			"messages": bson.M{
-				"$each": chat.Messages,
-			},
-		},
-	}
-	updateOptions := options.Update().SetUpsert(true)
-	_, err := r.chatDb.UpdateOne(ctx, filter, update, updateOptions)
-	log.Println("Uploading chat ", chat.ID.Hex())
-	if err != nil {
-		return err
 	}
 	return nil
 }
