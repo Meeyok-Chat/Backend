@@ -7,6 +7,8 @@ import (
 	"github.com/Meeyok-Chat/backend/middleware"
 	"github.com/Meeyok-Chat/backend/repository/cache"
 	"github.com/Meeyok-Chat/backend/repository/database"
+	"github.com/Meeyok-Chat/backend/repository/queue/queuePublisher"
+	"github.com/Meeyok-Chat/backend/repository/queue/queueReceiver"
 	"github.com/Meeyok-Chat/backend/routes"
 	"github.com/Meeyok-Chat/backend/services/chat"
 	"github.com/Meeyok-Chat/backend/services/user"
@@ -25,17 +27,24 @@ func main() {
 		log.Fatalf("Could not create MongoDB client: %v", err)
 	}
 
-	// Initialize a new chat repository
+	// Initialize a new repositories
 	chatRepo := database.NewChatRepo(mongoClient.Chats)
 	cacheRepo := cache.NewCacheRepo(redisClient)
 	userRepo := database.NewUserRepo(mongoClient.User)
 
-	// Initialize a new chat service
+	// Initialize a new services
 	chatService := chat.NewChatService(chatRepo)
 	userService := user.NewUserService(userRepo)
 
+	// Initialize a queue Publisher
+	queuePublisher := queuePublisher.NewQueuePublisher()
+
 	// Initialize a websocket manager
-	websocketManager := Websocket.NewManagerService(cacheRepo, chatRepo, userRepo)
+	websocketManager := Websocket.NewManagerService(queuePublisher, cacheRepo, chatRepo, userRepo)
+
+	// Initialize a queue manager Receiver
+	queueReceiver := queueReceiver.NewConsumerManager(websocketManager, cacheRepo)
+	go queueReceiver.ReadResult()
 
 	// Initialize a new client for firebase authentication
 	middleware := middleware.NewAuthMiddleware(userService)

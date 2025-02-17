@@ -27,6 +27,8 @@ type ClientData struct {
 const (
 	EventSendMessage = "send_message"
 	EventNewMessage  = "new_message"
+
+	EventSendMessageToMeeyok = "send_message_to_meeyok"
 )
 
 type EventHandler func(event Event, c *Client) error

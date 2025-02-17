@@ -13,6 +13,7 @@ import (
 	"github.com/Meeyok-Chat/backend/models"
 	"github.com/Meeyok-Chat/backend/repository/cache"
 	"github.com/Meeyok-Chat/backend/repository/database"
+	"github.com/Meeyok-Chat/backend/repository/queue/queuePublisher"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 )
@@ -22,6 +23,8 @@ type managerService struct {
 	cacheRepo cache.CacheRepo
 	chatRepo  database.ChatRepo
 	userRepo  database.UserRepo
+
+	queuePublisher queuePublisher.QueuePublisher
 	// Using a syncMutex here to be able to lcok state before editing clients
 	// Could also use Channels to block
 	sync.RWMutex
@@ -36,16 +39,19 @@ type ManagerService interface {
 	RouteEvent(event models.Event, c *models.Client) error
 	CheckOldClient(userID string) error
 	GetClients() []models.User
+
+	SendMessageHandler(event models.Event, c *models.Client) error
 }
 
 // NewManager is used to initalize all the values inside the manager
-func NewManagerService(cacheRepo cache.CacheRepo, chatRepo database.ChatRepo, userRepo database.UserRepo) ManagerService {
+func NewManagerService(queuePublisher queuePublisher.QueuePublisher, cacheRepo cache.CacheRepo, chatRepo database.ChatRepo, userRepo database.UserRepo) ManagerService {
 	m := &managerService{
-		clients:   make(models.ClientList),
-		cacheRepo: cacheRepo,
-		chatRepo:  chatRepo,
-		userRepo:  userRepo,
-		handlers:  make(map[string]models.EventHandler),
+		clients:        make(models.ClientList),
+		cacheRepo:      cacheRepo,
+		chatRepo:       chatRepo,
+		userRepo:       userRepo,
+		queuePublisher: queuePublisher,
+		handlers:       make(map[string]models.EventHandler),
 	}
 	m.setupEventHandlers()
 	return m
@@ -53,7 +59,7 @@ func NewManagerService(cacheRepo cache.CacheRepo, chatRepo database.ChatRepo, us
 
 // setupEventHandlers configures and adds all handlers
 func (ms *managerService) setupEventHandlers() {
-	ms.handlers[models.EventSendMessage] = ms.sendMessageHandler
+	ms.handlers[models.EventSendMessage] = ms.SendMessageHandler
 }
 
 // routeEvent is used to make sure the correct event goes into the correct handler
@@ -156,7 +162,7 @@ func (ms *managerService) RemoveClient(client *models.Client) {
 }
 
 // Event
-func (ms *managerService) sendMessageHandler(event models.Event, c *models.Client) error {
+func (ms *managerService) SendMessageHandler(event models.Event, c *models.Client) error {
 	// Marshal Payload into wanted format
 	var chatevent models.SendMessageEvent
 	if err := json.Unmarshal(event.Payload, &chatevent); err != nil {
@@ -192,11 +198,21 @@ func (ms *managerService) sendMessageHandler(event models.Event, c *models.Clien
 	if err != nil {
 		return fmt.Errorf("failed to append new message to database: %v", err)
 	}
-	ms.cacheRepo.AppendMessageCache(chat.ID.Hex(), newMessage)
+
+	// Store new message in cache
+	err = ms.cacheRepo.AppendMessageCache(chat.ID.Hex(), newMessage)
+	if errors.Is(err, models.ErrChatNotInCache) {
+		ms.cacheRepo.UpdateChatCache(chat.ID.Hex(), chat)
+	}
 
 	data, err := json.Marshal(chatevent)
 	if err != nil {
 		return fmt.Errorf("failed to marshal broadcast message: %v", err)
+	}
+
+	// Send message to Meeyok AI
+	if message == "@Meeyok AI" {
+		ms.sendEventToQueue(chatevent.ChatID)
 	}
 
 	// Place payload into an Event
@@ -212,4 +228,26 @@ func (ms *managerService) sendMessageHandler(event models.Event, c *models.Clien
 		}
 	}
 	return nil
+}
+
+func (ms *managerService) sendEventToQueue(chatID string) {
+	// system event for ai service test
+	queuePublisherPayload := models.QueuePublisherPayload{
+		From: chatID,
+	}
+	payload, err := json.Marshal(queuePublisherPayload)
+	if err != nil {
+		log.Fatalf("error marshalling sendMessageEvent: %v", err)
+	}
+
+	var event models.Event
+	event.Payload = payload
+	event.Type = models.EventSendMessageToMeeyok
+
+	outgoingEvent, err := json.Marshal(event)
+	if err != nil {
+		log.Fatalf("error marshalling sendMessageEvent: %v", err)
+	}
+
+	ms.queuePublisher.SQSSendMessage(outgoingEvent)
 }
