@@ -154,7 +154,7 @@ func (s authMiddleware) processToken(ctx *gin.Context, client *auth.Client, toke
 }
 
 func (s authMiddleware) InitAuth() (*auth.Client, error) {
-	credentialsPath := configs.GetFirebaseCloudCredentials()
+	credentialsPath := configs.GetFirebaseLocalCredentials()
 	opt := option.WithCredentialsFile(credentialsPath)
 	app, err := firebase.NewApp(context.Background(), nil, opt)
 	if err != nil {
