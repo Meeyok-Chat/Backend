@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Meeyok-Chat/backend/configs"
 	"github.com/Meeyok-Chat/backend/models"
 	service "github.com/Meeyok-Chat/backend/services/user"
 
@@ -153,8 +154,8 @@ func (s authMiddleware) processToken(ctx *gin.Context, client *auth.Client, toke
 }
 
 func (s authMiddleware) InitAuth() (*auth.Client, error) {
-	var firebaseCredFile = os.Getenv("FIREBASE_KEY")
-	opt := option.WithCredentialsFile(firebaseCredFile)
+	credentialsPath := configs.GetFirebaseCloudCredentials()
+	opt := option.WithCredentialsFile(credentialsPath)
 	app, err := firebase.NewApp(context.Background(), nil, opt)
 	if err != nil {
 		log.Fatalf("error initializing firebase app: %v", err)

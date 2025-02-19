@@ -60,5 +60,5 @@ func main() {
 	routes.ChatRoute(r, middleware, client, userService, chatService, websocketManager)
 	routes.UserRoute(r, middleware, client, userService)
 
-	log.Fatal(r.Run(":" + configs.GetEnv("CHATBOT_PORT")))
+	log.Fatal(r.Run(":" + configs.GetEnv("PORT")))
 }
