@@ -8,7 +8,37 @@ import (
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
+	firebase "firebase.google.com/go/v4"
+	"firebase.google.com/go/v4/auth"
+	"google.golang.org/api/option"
 )
+
+type FirebaseClient struct {
+	Client *auth.Client
+}
+
+func NewFirebaseClient() (*auth.Client, error) {
+	var credentialPath string
+	if os.Getenv("APP_MODE") == "production" {
+		credentialPath = GetFirebaseCloudCredentials()
+	} else {
+		credentialPath = GetFirebaseLocalCredentials()
+	}
+	opt := option.WithCredentialsFile(credentialPath)
+	app, err := firebase.NewApp(context.Background(), nil, opt)
+	if err != nil {
+		log.Fatalf("error initializing firebase app: %v", err)
+		return nil, err
+	}
+
+	client, errAuth := app.Auth(context.Background())
+	if errAuth != nil {
+		log.Fatalf("error initializing firebase auth: %v", errAuth)
+		return nil, errAuth
+	}
+
+	return client, nil
+}
 
 func GetFirebaseCloudCredentials() string {
 	ctx := context.Background()

@@ -40,6 +40,17 @@ func (ws *websocketController) checkOrigin(r *http.Request) bool {
 	}
 }
 
+// InitWebsocket godoc
+// @Summary      Initialize WebSocket connection
+// @Description  Prepares for WebSocket connection by checking existing client
+// @Tags         websocket
+// @Accept       json
+// @Produce      json
+// @Security     Bearer
+// @Success      200  {object}  map[string]string
+// @Failure      400  {object}  models.HTTPError  "Bad Request"
+// @Failure      500  {object}  models.HTTPError  "Internal Server Error"
+// @Router       /ws/init [post]
 func (ws *websocketController) InitWebsocket(c *gin.Context) {
 	userID, exists := c.Get("user")
 	if !exists {
@@ -56,7 +67,18 @@ func (ws *websocketController) InitWebsocket(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"result": "success"})
 }
 
-// serveWS is a HTTP Handler that has the Manager that allows connections
+// ServeWS godoc
+// @Summary      Establish WebSocket connection
+// @Description  Upgrades HTTP connection to WebSocket for real-time communication
+// @Tags         websocket
+// @Accept       json
+// @Produce      json
+// @Security     Bearer
+// @Param        userID  path      string  true  "User ID"
+// @Success      101     "Switching Protocols"
+// @Failure      400     {object}  models.HTTPError  "Bad Request"
+// @Failure      500     {object}  models.HTTPError  "Internal Server Error"
+// @Router       /ws/{userID} [get]ns
 func (ws *websocketController) ServeWS(c *gin.Context) {
 	userID := c.Param("userID")
 
@@ -77,6 +99,16 @@ func (ws *websocketController) ServeWS(c *gin.Context) {
 	ws.websocketManagerService.AddClient(conn, c, userID)
 }
 
+// GetClients godoc
+// @Summary      List active WebSocket clients
+// @Description  Retrieves a list of currently connected WebSocket clients
+// @Tags         websocket
+// @Accept       json
+// @Produce      json
+// @Security     Bearer
+// @Success      200  {object}  map[string][]string
+// @Failure      500  {object}  models.HTTPError  "Internal Server Error"
+// @Router       /ws/clients [get]
 func (ws *websocketController) GetClients(c *gin.Context) {
 	users := ws.websocketManagerService.GetClients()
 	c.JSON(http.StatusOK, gin.H{"users": users})

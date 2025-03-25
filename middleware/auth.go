@@ -10,15 +10,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Meeyok-Chat/backend/configs"
 	"github.com/Meeyok-Chat/backend/models"
 	service "github.com/Meeyok-Chat/backend/services/user"
 
-	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/auth"
 
 	"github.com/gin-gonic/gin"
-	"google.golang.org/api/option"
 )
 
 type authMiddleware struct {
@@ -28,7 +25,6 @@ type authMiddleware struct {
 type AuthMiddleware interface {
 	Auth(client *auth.Client) gin.HandlerFunc
 	processToken(ctx *gin.Context, client *auth.Client, token *auth.Token, tokenID string)
-	InitAuth() (*auth.Client, error)
 	RoleAuth(requiredRole ...string) gin.HandlerFunc
 	AssignRole(ctx context.Context, client *auth.Client, c *gin.Context, email string, role string) error
 }
@@ -151,24 +147,6 @@ func (s authMiddleware) processToken(ctx *gin.Context, client *auth.Client, toke
 	log.Printf("Role: %v\n", role)
 
 	ctx.Next()
-}
-
-func (s authMiddleware) InitAuth() (*auth.Client, error) {
-	credentialsPath := configs.GetFirebaseLocalCredentials()
-	opt := option.WithCredentialsFile(credentialsPath)
-	app, err := firebase.NewApp(context.Background(), nil, opt)
-	if err != nil {
-		log.Fatalf("error initializing firebase app: %v", err)
-		return nil, err
-	}
-
-	client, errAuth := app.Auth(context.Background())
-	if errAuth != nil {
-		log.Fatalf("error initializing firebase auth: %v", errAuth)
-		return nil, errAuth
-	}
-
-	return client, nil
 }
 
 func (s authMiddleware) RoleAuth(allowedRoles ...string) gin.HandlerFunc {

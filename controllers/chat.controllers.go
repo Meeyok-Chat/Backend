@@ -36,6 +36,16 @@ func NewChatController(chatService chat.ChatService, userService user.UserServic
 	}
 }
 
+// GetChats godoc
+// @Summary      List all chats
+// @Description  Retrieves a list of all available chats
+// @Tags         chats
+// @Accept       json
+// @Produce      json
+// @Security     Bearer
+// @Success      200  {array}   models.Chat
+// @Failure      500  {object}  models.HTTPError
+// @Router       /chats [get]
 func (cc *chatController) GetChats(c *gin.Context) {
 	chats, err := cc.chatService.GetChats()
 	if err != nil {
@@ -45,6 +55,20 @@ func (cc *chatController) GetChats(c *gin.Context) {
 	c.JSON(http.StatusOK, chats)
 }
 
+// GetChatById godoc
+// @Summary      Get a specific chat by ID
+// @Description  Retrieves a chat with messages based on the provided ID
+// @Tags         chats
+// @Accept       json
+// @Produce      json
+// @Param        id           path      string  true  "Chat ID"
+// @Param        page         query     int     false "Page number for pagination" default(1)
+// @Param        num-message  query     int     false "Number of messages per page" default(10)
+// @Security     Bearer
+// @Success      200  {object}  models.Chat
+// @Failure      400  {object}  models.HTTPError
+// @Failure      500  {object}  models.HTTPError
+// @Router       /chats/{id} [get]
 func (cc *chatController) GetChatById(c *gin.Context) {
 	chatId := c.Param("id")
 
@@ -68,6 +92,18 @@ func (cc *chatController) GetChatById(c *gin.Context) {
 	c.JSON(http.StatusOK, chat)
 }
 
+// CreateChat godoc
+// @Summary      Create a new chat
+// @Description  Creates a new chat with the provided chat details
+// @Tags         chats
+// @Accept       json
+// @Produce      json
+// @Param        chat  body      models.Chat  true  "Chat details"
+// @Security     Bearer
+// @Success      200   {object}  map[string]string
+// @Failure      400   {object}  models.HTTPError
+// @Failure      500   {object}  models.HTTPError
+// @Router       /chats [post]
 func (cc *chatController) CreateChat(c *gin.Context) {
 	chatDTO := models.Chat{}
 	if err := c.ShouldBindJSON(&chatDTO); err != nil {
@@ -89,6 +125,19 @@ func (cc *chatController) CreateChat(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Chat created"})
 }
 
+// AddUsersToChat godoc
+// @Summary      Add users to a chat
+// @Description  Adds specified users to an existing chat
+// @Tags         chats
+// @Accept       json
+// @Produce      json
+// @Param        id     path      string    true  "Chat ID"
+// @Param        users  body      object    true  "List of user IDs to add"  schema({"type":"object","properties":{"users":{"type":"array","items":{"type":"string"}}}})
+// @Security     Bearer
+// @Success      200   {object}  map[string]string
+// @Failure      400   {object}  models.HTTPError
+// @Failure      500   {object}  models.HTTPError
+// @Router       /chats/{id}/users [post]
 func (cc *chatController) AddUsersToChat(c *gin.Context) {
 	chatID := c.Param("id")
 	if chatID == "" {
@@ -118,6 +167,18 @@ func (cc *chatController) AddUsersToChat(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Users added to chat successfully"})
 }
 
+// UpdateChat godoc
+// @Summary      Update a chat
+// @Description  Updates the details of an existing chat
+// @Tags         chats
+// @Accept       json
+// @Produce      json
+// @Param        chat  body      models.Chat  true  "Updated chat details"
+// @Security     Bearer
+// @Success      200   {object}  map[string]string
+// @Failure      400   {object}  models.HTTPError
+// @Failure      500   {object}  models.HTTPError
+// @Router       /chats [put]
 func (cc *chatController) UpdateChat(c *gin.Context) {
 	chatId, exists := c.Get("chat")
 	if !exists {
@@ -140,6 +201,17 @@ func (cc *chatController) UpdateChat(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Chat updated"})
 }
 
+// DeleteChat godoc
+// @Summary      Delete a chat
+// @Description  Deletes a chat by its ID
+// @Tags         chats
+// @Accept       json
+// @Produce      json
+// @Param        id   path      string  true  "Chat ID"
+// @Security     Bearer
+// @Success      200  {object}  map[string]string
+// @Failure      500  {object}  models.HTTPError
+// @Router       /chats/{id} [delete]
 func (cc *chatController) DeleteChat(c *gin.Context) {
 	chatId := c.Param("id")
 	if err := cc.chatService.DeleteChat(chatId); err != nil {
@@ -149,6 +221,21 @@ func (cc *chatController) DeleteChat(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Chat deleted"})
 }
 
+// GetMessages godoc
+// @Summary      Get messages in a chat
+// @Description  Retrieves messages for a specific chat with pagination
+// @Tags         chats
+// @Accept       json
+// @Produce      json
+// @Security     Bearer
+// @Param        id           path      string  true  "Chat ID"
+// @Param        page         query     int     false "Page number for pagination" default(0)
+// @Param        num-message  query     int     false "Number of messages per page" default(10)
+// @Security     Bearer
+// @Success      200  {array}   models.Message
+// @Failure      400  {object}  models.HTTPError
+// @Failure      500  {object}  models.HTTPError
+// @Router       /chats/{id}/messages [get]
 func (cc *chatController) GetMessages(c *gin.Context) {
 	chatId, exists := c.Get("chat")
 	if !exists {
