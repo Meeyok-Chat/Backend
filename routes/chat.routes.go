@@ -13,7 +13,7 @@ import (
 func ChatRoute(r *gin.Engine, middleware middleware.AuthMiddleware, client *auth.Client, userService user.UserService, chatService chat.ChatService, websocketManager Websocket.ManagerService) {
 	chatController := controllers.NewChatController(chatService, userService, websocketManager)
 
-	rgc := r.Group("/chat")
+	rgc := r.Group("/chats")
 	rgc.Use(middleware.Auth(client))
 	{
 		rgc.GET("", chatController.GetChats)

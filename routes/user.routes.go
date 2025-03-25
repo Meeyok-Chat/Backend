@@ -11,7 +11,7 @@ import (
 func UserRoute(r *gin.Engine, middleware middleware.AuthMiddleware, client *auth.Client, userService user.UserService) {
 	userController := controllers.NewUserController(userService)
 
-	rgu := r.Group("/user")
+	rgu := r.Group("/users")
 	rgu.Use(middleware.Auth(client))
 	{
 		rgu.GET("/me", userController.GetUserByToken)

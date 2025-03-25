@@ -1,28 +1,28 @@
-# Stage 1: Build Go binary
-FROM golang:1.23.2 AS builder
+# Use the official Golang image
+FROM golang:1.23.2
+
+# Install swag CLI tool
+RUN go install github.com/swaggo/swag/cmd/swag@latest
 
 WORKDIR /app
 
-# Copy และติดตั้ง dependencies
+# Copy go mod and sum files
 COPY go.mod go.sum ./
-RUN go mod tidy 
 
+# Download dependencies
+RUN go mod tidy
+
+# Copy the entire project
 COPY . ./
 
-# Build binary ไปไว้ที่ /app/docker-gs-ping
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /app/docker-gs-ping ./cmd/main.go
+# Generate Swagger documentation in cmd/ directory
+RUN swag init -g cmd/main.go -o cmd/docs
 
-# Stage 2: Create a minimal runtime image
-FROM alpine:latest
+# Build the application
+RUN CGO_ENABLED=0 GOOS=linux go build -o /docker-gs-ping cmd/main.go
 
-WORKDIR /root/
-
-# Copy binary จาก builder stage
-COPY --from=builder /app/docker-gs-ping .
-
-# ให้สิทธิ์ execute กับไฟล์
-RUN chmod +x /root/docker-gs-ping
-
+# Expose the port the app runs on
 EXPOSE 8000
 
-CMD ["/root/docker-gs-ping"]
+# Command to run the executable
+CMD ["/docker-gs-ping"]

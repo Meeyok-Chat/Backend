@@ -9,7 +9,6 @@ import (
 
 	"github.com/Meeyok-Chat/backend/configs"
 	"github.com/Meeyok-Chat/backend/models"
-	"github.com/Meeyok-Chat/backend/repository/cache"
 	Websocket "github.com/Meeyok-Chat/backend/services/websocket"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -23,7 +22,6 @@ type QueueReceiver struct {
 	sync.RWMutex
 
 	managerService Websocket.ManagerService
-	cacheRepo      cache.CacheRepo
 }
 
 const (
@@ -47,11 +45,10 @@ func ConnectSQS() *sqs.SQS {
 	return sqsSvc
 }
 
-func NewConsumerManager(managerService Websocket.ManagerService, cacheRepo cache.CacheRepo) *QueueReceiver {
+func NewConsumerManager(managerService Websocket.ManagerService) *QueueReceiver {
 	cm := &QueueReceiver{
 		sqsSvc:         ConnectSQS(),
 		managerService: managerService,
-		cacheRepo:      cacheRepo,
 	}
 	return cm
 }
