@@ -1,6 +1,8 @@
 package chat
 
 import (
+	"errors"
+
 	"github.com/Meeyok-Chat/backend/models"
 	"github.com/Meeyok-Chat/backend/repository/database"
 )
@@ -12,6 +14,7 @@ type chatService struct {
 type ChatService interface {
 	GetChats() ([]models.Chat, error)
 	GetChatById(id string, page int, numberOfMessages int) (models.Chat, error)
+	GetUserChats(userID string, chatType string) ([]models.Chat, error)
 	GetMessages(id string, page int, numberOfMessages int) ([]models.Message, error)
 	CreateChat(chat models.Chat) (models.Chat, error)
 	AddUsersToChat(chatID string, users []string) error
@@ -56,6 +59,19 @@ func (cs *chatService) GetMessages(id string, page int, numberOfMessages int) ([
 	}
 	messages := chat.Messages[max(0, len(chat.Messages)-page*numberOfMessages):max(0, len(chat.Messages)-(page-1)*numberOfMessages)]
 	return messages, nil
+}
+
+func (cs *chatService) GetUserChats(userID string, chatType string) ([]models.Chat, error) {
+	switch chatType {
+	case "group":
+		return cs.chatRepo.GetGroupChats(userID)
+	case "friend":
+		return cs.chatRepo.GetFriendChats(userID)
+	case "non-friend":
+		return cs.chatRepo.GetNonFriendChats(userID)
+	default:
+		return nil, errors.New("invalid chat type")
+	}
 }
 
 func (cs *chatService) CreateChat(chat models.Chat) (models.Chat, error) {

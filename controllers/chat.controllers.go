@@ -21,6 +21,7 @@ type chatController struct {
 type ChatController interface {
 	GetChats(c *gin.Context)
 	GetChatById(c *gin.Context)
+	GetUserChats(c *gin.Context)
 	CreateChat(c *gin.Context)
 	AddUsersToChat(c *gin.Context)
 	UpdateChat(c *gin.Context)
@@ -90,6 +91,42 @@ func (cc *chatController) GetChatById(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, chat)
+}
+
+// GetUserChats godoc
+// @Summary      Get user chats based on type
+// @Description  Retrieves chats based on the given type (group, friend, non-friend)
+// @Tags         chats
+// @Accept       json
+// @Produce      json
+// @Param        type   query     string  true  "Type of chat (group, friend, non-friend)"
+// @Security     Bearer
+// @Success      200  {array}   models.Chat
+// @Failure      400  {object}  models.HTTPError
+// @Failure      500  {object}  models.HTTPError
+// @Router       /chats/user [get]
+func (cc *chatController) GetUserChats(c *gin.Context) {
+	email, ok := c.Get("email")
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "User not found"})
+		return
+	}
+	user, err := cc.userService.GetUserByEmail(email.(string))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	userID := user.ID.Hex()
+	chatType := c.Param("type")
+
+	chats, err := cc.chatService.GetUserChats(userID, chatType)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, chats)
 }
 
 // CreateChat godoc

@@ -15,6 +15,7 @@ import (
 
 type chatRepo struct {
 	chatDb *mongo.Collection
+	userDb *mongo.Collection
 }
 
 type ChatRepo interface {
@@ -25,6 +26,9 @@ type ChatRepo interface {
 	// Get
 	GetChats() ([]models.Chat, error)
 	GetChatByID(id string) (models.Chat, error)
+	GetGroupChats(userID string) ([]models.Chat, error)
+	GetFriendChats(userID string) ([]models.Chat, error)
+	GetNonFriendChats(userID string) ([]models.Chat, error)
 
 	// Create
 	CreateChat(chat models.Chat) (models.Chat, error)
@@ -41,9 +45,10 @@ type ChatRepo interface {
 	DeleteChat(id string) error
 }
 
-func NewChatRepo(chatDb *mongo.Collection) ChatRepo {
+func NewChatRepo(chatDb *mongo.Collection, userDb *mongo.Collection) ChatRepo {
 	return &chatRepo{
 		chatDb: chatDb,
+		userDb: userDb,
 	}
 }
 
@@ -100,6 +105,87 @@ func (r *chatRepo) GetChatByID(id string) (models.Chat, error) {
 		return models.Chat{}, err
 	}
 	return chat, nil
+}
+
+func (r *chatRepo) GetGroupChats(userID string) ([]models.Chat, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	var chats []models.Chat
+	filter := bson.M{"users": userID, "type": models.GroupChatType}
+	cursor, err := r.chatDb.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = cursor.All(ctx, &chats); err != nil {
+		return nil, err
+	}
+	return chats, nil
+}
+
+func (r *chatRepo) GetFriendChats(userID string) ([]models.Chat, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	objID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		log.Fatalf("Invalid ObjectID: %v", err)
+	}
+
+	var user models.User
+	err = r.userDb.FindOne(ctx, bson.M{"_id": objID}).Decode(&user)
+	if err != nil {
+		return nil, err
+	}
+
+	var chats []models.Chat
+	filter := bson.M{
+		"users": bson.M{"$all": user.Friends},
+		"type":  models.IndividualChatType,
+	}
+
+	cursor, err := r.chatDb.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = cursor.All(ctx, &chats); err != nil {
+		return nil, err
+	}
+	return chats, nil
+}
+
+func (r *chatRepo) GetNonFriendChats(userID string) ([]models.Chat, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	objID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		log.Fatalf("Invalid ObjectID: %v", err)
+	}
+
+	var user models.User
+	err = r.userDb.FindOne(ctx, bson.M{"_id": objID}).Decode(&user)
+	if err != nil {
+		return nil, err
+	}
+
+	var chats []models.Chat
+	filter := bson.M{
+		"users": bson.M{"$in": []string{userID}, "$nin": user.Friends},
+		"type":  models.IndividualChatType,
+	}
+
+	cursor, err := r.chatDb.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = cursor.All(ctx, &chats); err != nil {
+		return nil, err
+	}
+	return chats, nil
 }
 
 func (r *chatRepo) CreateChat(chat models.Chat) (models.Chat, error) {
