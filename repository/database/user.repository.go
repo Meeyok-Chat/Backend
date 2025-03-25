@@ -25,6 +25,7 @@ type UserRepo interface {
 	CreateUser(user models.User) error
 
 	AddChatToUser(userID string, chatID string) error
+	AddPostToUser(userID string, postID string) error
 
 	UpdateUser(user models.User) error
 	UpdateUsername(userID string, newUsername string) error
@@ -163,6 +164,24 @@ func (r *userRepo) AddChatToUser(userID string, chatID string) error {
 		return fmt.Errorf("no user found or chat already exists")
 	}
 
+	return nil
+}
+
+func (r *userRepo) AddPostToUser(userID string, postID string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	objID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return err
+	}
+
+	userFilter := bson.M{"_id": objID}
+	update := bson.M{"$push": bson.M{"posts": postID}}
+	_, err = r.database.UpdateOne(ctx, userFilter, update)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

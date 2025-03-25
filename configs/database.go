@@ -15,6 +15,7 @@ type MongoClient struct {
 	User       *mongo.Collection
 	Chat       *mongo.Collection
 	Friendship *mongo.Collection
+	Post       *mongo.Collection
 }
 
 func NewMongoClient() (*MongoClient, error) {
@@ -39,5 +40,6 @@ func NewMongoClient() (*MongoClient, error) {
 		User:       mongoClient.Database("Golang").Collection("users"),
 		Chat:       mongoClient.Database("Golang").Collection("chats"),
 		Friendship: mongoClient.Database("Golang").Collection("friendships"),
+		Post:       mongoClient.Database("Golang").Collection("posts"),
 	}, nil
 }

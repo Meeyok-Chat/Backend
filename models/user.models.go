@@ -13,5 +13,6 @@ type User struct {
 	Role      string             `json:"role,omitempty" bson:"role"`
 	Chats     []string           `json:"chats,omitempty" bson:"chats,omitempty"`
 	Friends   []string           `json:"friends,omitempty" bson:"friends,omitempty"`
+	Posts     []string           `json:"posts,omitempty" bson:"posts,omitempty"`
 	UpdatedAt time.Time          `json:"updatedAt" bson:"updatedat"`
 }
