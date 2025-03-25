@@ -18,6 +18,7 @@ func ChatRoute(r *gin.Engine, middleware middleware.AuthMiddleware, client *auth
 	{
 		rgc.GET("", chatController.GetChats)
 		rgc.GET("/:id", chatController.GetChatById)
+		rgc.GET("/user/:type", chatController.GetUserChats)
 
 		rgc.POST("", chatController.CreateChat)
 		rgc.PATCH("/addusers/:id", chatController.AddUsersToChat)
