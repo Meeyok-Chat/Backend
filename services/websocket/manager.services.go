@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/Meeyok-Chat/backend/models"
-	"github.com/Meeyok-Chat/backend/repository/cache"
 	"github.com/Meeyok-Chat/backend/repository/database"
 	"github.com/Meeyok-Chat/backend/repository/queue/queuePublisher"
 	"github.com/gin-gonic/gin"
@@ -19,10 +18,9 @@ import (
 )
 
 type managerService struct {
-	clients   models.ClientList
-	cacheRepo cache.CacheRepo
-	chatRepo  database.ChatRepo
-	userRepo  database.UserRepo
+	clients  models.ClientList
+	chatRepo database.ChatRepo
+	userRepo database.UserRepo
 
 	queuePublisher queuePublisher.QueuePublisher
 	// Using a syncMutex here to be able to lcok state before editing clients
@@ -44,10 +42,9 @@ type ManagerService interface {
 }
 
 // NewManager is used to initalize all the values inside the manager
-func NewManagerService(queuePublisher queuePublisher.QueuePublisher, cacheRepo cache.CacheRepo, chatRepo database.ChatRepo, userRepo database.UserRepo) ManagerService {
+func NewManagerService(queuePublisher queuePublisher.QueuePublisher, chatRepo database.ChatRepo, userRepo database.UserRepo) ManagerService {
 	m := &managerService{
 		clients:        make(models.ClientList),
-		cacheRepo:      cacheRepo,
 		chatRepo:       chatRepo,
 		userRepo:       userRepo,
 		queuePublisher: queuePublisher,
@@ -197,12 +194,6 @@ func (ms *managerService) SendMessageHandler(event models.Event, c *models.Clien
 	err = ms.chatRepo.AppendMessage(chat.ID.Hex(), newMessage)
 	if err != nil {
 		return fmt.Errorf("failed to append new message to database: %v", err)
-	}
-
-	// Store new message in cache
-	err = ms.cacheRepo.AppendMessageCache(chat.ID.Hex(), newMessage)
-	if errors.Is(err, models.ErrChatNotInCache) {
-		ms.cacheRepo.UpdateChatCache(chat.ID.Hex(), chat)
 	}
 
 	data, err := json.Marshal(chatevent)

@@ -5,7 +5,6 @@ import (
 
 	"github.com/Meeyok-Chat/backend/configs"
 	"github.com/Meeyok-Chat/backend/middleware"
-	"github.com/Meeyok-Chat/backend/repository/cache"
 	"github.com/Meeyok-Chat/backend/repository/database"
 	"github.com/Meeyok-Chat/backend/repository/queue/queuePublisher"
 	"github.com/Meeyok-Chat/backend/repository/queue/queueReceiver"
@@ -17,11 +16,6 @@ import (
 )
 
 func main() {
-	// Initialize a new client.
-	redisClient, err := configs.NewRedisClient()
-	if err != nil {
-		log.Fatalf("Could not create Redis client: %v", err)
-	}
 	mongoClient, err := configs.NewMongoClient()
 	if err != nil {
 		log.Fatalf("Could not create MongoDB client: %v", err)
@@ -29,7 +23,6 @@ func main() {
 
 	// Initialize a new repositories
 	chatRepo := database.NewChatRepo(mongoClient.Chats)
-	cacheRepo := cache.NewCacheRepo(redisClient)
 	userRepo := database.NewUserRepo(mongoClient.User)
 
 	// Initialize a new services
@@ -40,10 +33,10 @@ func main() {
 	queuePublisher := queuePublisher.NewQueuePublisher()
 
 	// Initialize a websocket manager
-	websocketManager := Websocket.NewManagerService(queuePublisher, cacheRepo, chatRepo, userRepo)
+	websocketManager := Websocket.NewManagerService(queuePublisher, chatRepo, userRepo)
 
 	// Initialize a queue manager Receiver
-	queueReceiver := queueReceiver.NewConsumerManager(websocketManager, cacheRepo)
+	queueReceiver := queueReceiver.NewConsumerManager(websocketManager)
 	go queueReceiver.ReadResult()
 
 	// Initialize a new client for firebase authentication
