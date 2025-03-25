@@ -119,6 +119,7 @@ func (r *userRepo) CreateUser(user models.User) error {
 		"username":  user.Username,
 		"role":      user.Role,
 		"chats":     []string{},
+		"friends":   []string{},
 		"updatedat": time.Now(),
 	}
 	log.Println(insertData)

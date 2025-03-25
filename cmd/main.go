@@ -11,6 +11,7 @@ import (
 	"github.com/Meeyok-Chat/backend/repository/queue/queueReceiver"
 	"github.com/Meeyok-Chat/backend/routes"
 	"github.com/Meeyok-Chat/backend/services/chat"
+	"github.com/Meeyok-Chat/backend/services/friendship"
 	"github.com/Meeyok-Chat/backend/services/user"
 	Websocket "github.com/Meeyok-Chat/backend/services/websocket"
 	"github.com/gin-gonic/gin"
@@ -53,12 +54,14 @@ func main() {
 	}
 
 	// Initialize a new repositories
-	chatRepo := database.NewChatRepo(mongoClient.Chats)
+	chatRepo := database.NewChatRepo(mongoClient.Chat, mongoClient.User, mongoClient.Friendship)
 	userRepo := database.NewUserRepo(mongoClient.User)
+	friendshipRepo := database.NewFriendshipRepo(mongoClient.Friendship)
 
 	// Initialize a new services
 	chatService := chat.NewChatService(chatRepo)
 	userService := user.NewUserService(userRepo)
+	friendshipService := friendship.NewFriendshipService(friendshipRepo)
 
 	// Initialize a queue Publisher
 	queuePublisher := queuePublisher.NewQueuePublisher()
@@ -79,6 +82,7 @@ func main() {
 	routes.WebsocketRoute(r, middleware, FirebaseClient, websocketManager, chatService)
 	routes.ChatRoute(r, middleware, FirebaseClient, userService, chatService, websocketManager)
 	routes.UserRoute(r, middleware, FirebaseClient, userService)
+	routes.FriendshipRoute(r, middleware, FirebaseClient, friendshipService)
 	r.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler,
 		ginSwagger.DefaultModelsExpandDepth(-1),
 	))
