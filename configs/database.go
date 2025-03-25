@@ -13,7 +13,7 @@ import (
 type MongoClient struct {
 	Client     *mongo.Client
 	User       *mongo.Collection
-	Chats      *mongo.Collection
+	Chat       *mongo.Collection
 	Friendship *mongo.Collection
 }
 
@@ -37,7 +37,7 @@ func NewMongoClient() (*MongoClient, error) {
 	return &MongoClient{
 		Client:     mongoClient,
 		User:       mongoClient.Database("Golang").Collection("users"),
-		Chats:      mongoClient.Database("Golang").Collection("chats"),
+		Chat:       mongoClient.Database("Golang").Collection("chats"),
 		Friendship: mongoClient.Database("Golang").Collection("friendships"),
 	}, nil
 }

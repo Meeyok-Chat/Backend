@@ -18,6 +18,7 @@ type friendshipRepo struct {
 }
 
 type FriendshipRepo interface {
+	IsFriends(userID1, userID2 string) (bool, error)
 	CreateFriendship(userID1, userID2 string) (models.Friendship, error)
 	UpdateFriendshipStatus(friendshipID string, status string) (models.Friendship, error)
 }
@@ -26,6 +27,29 @@ func NewFriendshipRepo(database *mongo.Collection) FriendshipRepo {
 	return &friendshipRepo{
 		database: database,
 	}
+}
+
+func (s *friendshipRepo) IsFriends(userID1, userID2 string) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	filter := bson.M{
+		"$or": []bson.M{
+			{"userId1": userID1, "userId2": userID2, "status": "accepted"},
+			{"userId1": userID2, "userId2": userID1, "status": "accepted"},
+		},
+	}
+
+	var friendship struct{}
+	err := s.database.FindOne(ctx, filter).Decode(&friendship)
+
+	if err == mongo.ErrNoDocuments {
+		return false, nil // Not friends
+	} else if err != nil {
+		return false, err // Other database errors
+	}
+
+	return true, nil // They are friends
 }
 
 func (r *friendshipRepo) CreateFriendship(userID1, userID2 string) (models.Friendship, error) {

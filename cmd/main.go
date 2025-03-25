@@ -54,7 +54,7 @@ func main() {
 	}
 
 	// Initialize a new repositories
-	chatRepo := database.NewChatRepo(mongoClient.Chats)
+	chatRepo := database.NewChatRepo(mongoClient.Chat, mongoClient.User, mongoClient.Friendship)
 	userRepo := database.NewUserRepo(mongoClient.User)
 	friendshipRepo := database.NewFriendshipRepo(mongoClient.Friendship)
 

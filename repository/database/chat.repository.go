@@ -14,8 +14,9 @@ import (
 )
 
 type chatRepo struct {
-	chatDb *mongo.Collection
-	userDb *mongo.Collection
+	chatDb       *mongo.Collection
+	userDb       *mongo.Collection
+	friendshipDb *mongo.Collection
 }
 
 type ChatRepo interface {
@@ -45,10 +46,11 @@ type ChatRepo interface {
 	DeleteChat(id string) error
 }
 
-func NewChatRepo(chatDb *mongo.Collection, userDb *mongo.Collection) ChatRepo {
+func NewChatRepo(chatDb *mongo.Collection, userDb *mongo.Collection, friendshipDb *mongo.Collection) ChatRepo {
 	return &chatRepo{
-		chatDb: chatDb,
-		userDb: userDb,
+		chatDb:       chatDb,
+		userDb:       userDb,
+		friendshipDb: friendshipDb,
 	}
 }
 
@@ -128,20 +130,8 @@ func (r *chatRepo) GetFriendChats(userID string) ([]models.Chat, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	objID, err := primitive.ObjectIDFromHex(userID)
-	if err != nil {
-		log.Fatalf("Invalid ObjectID: %v", err)
-	}
-
-	var user models.User
-	err = r.userDb.FindOne(ctx, bson.M{"_id": objID}).Decode(&user)
-	if err != nil {
-		return nil, err
-	}
-
-	var chats []models.Chat
 	filter := bson.M{
-		"users": bson.M{"$all": user.Friends},
+		"users": bson.M{"$in": []string{userID}},
 		"type":  models.IndividualChatType,
 	}
 
@@ -150,30 +140,41 @@ func (r *chatRepo) GetFriendChats(userID string) ([]models.Chat, error) {
 		return nil, err
 	}
 
+	var chats []models.Chat
 	if err = cursor.All(ctx, &chats); err != nil {
 		return nil, err
 	}
-	return chats, nil
+
+	var friendChats []models.Chat
+	for _, chat := range chats {
+		if len(chat.Users) != 2 {
+			continue
+		}
+
+		otherUserID := chat.Users[0]
+		if otherUserID == userID {
+			otherUserID = chat.Users[1]
+		}
+
+		isFriend, err := r.IsFriends(userID, otherUserID)
+		if err != nil {
+			return nil, err
+		}
+
+		if isFriend {
+			friendChats = append(friendChats, chat)
+		}
+	}
+
+	return friendChats, nil
 }
 
 func (r *chatRepo) GetNonFriendChats(userID string) ([]models.Chat, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	objID, err := primitive.ObjectIDFromHex(userID)
-	if err != nil {
-		log.Fatalf("Invalid ObjectID: %v", err)
-	}
-
-	var user models.User
-	err = r.userDb.FindOne(ctx, bson.M{"_id": objID}).Decode(&user)
-	if err != nil {
-		return nil, err
-	}
-
-	var chats []models.Chat
 	filter := bson.M{
-		"users": bson.M{"$in": []string{userID}, "$nin": user.Friends},
+		"users": bson.M{"$in": []string{userID}},
 		"type":  models.IndividualChatType,
 	}
 
@@ -182,10 +183,56 @@ func (r *chatRepo) GetNonFriendChats(userID string) ([]models.Chat, error) {
 		return nil, err
 	}
 
+	var chats []models.Chat
 	if err = cursor.All(ctx, &chats); err != nil {
 		return nil, err
 	}
-	return chats, nil
+
+	var nonFriendChats []models.Chat
+	for _, chat := range chats {
+		if len(chat.Users) != 2 {
+			continue
+		}
+
+		otherUserID := chat.Users[0]
+		if otherUserID == userID {
+			otherUserID = chat.Users[1]
+		}
+
+		isFriend, err := r.IsFriends(userID, otherUserID)
+		if err != nil {
+			return nil, err
+		}
+
+		if !isFriend {
+			nonFriendChats = append(nonFriendChats, chat)
+		}
+	}
+
+	return nonFriendChats, nil
+}
+
+func (s *chatRepo) IsFriends(userID1, userID2 string) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	filter := bson.M{
+		"$or": []bson.M{
+			{"userId1": userID1, "userId2": userID2, "status": "accepted"},
+			{"userId1": userID2, "userId2": userID1, "status": "accepted"},
+		},
+	}
+
+	var friendship struct{}
+	err := s.friendshipDb.FindOne(ctx, filter).Decode(&friendship)
+
+	if err == mongo.ErrNoDocuments {
+		return false, nil // Not friends
+	} else if err != nil {
+		return false, err // Other database errors
+	}
+
+	return true, nil // They are friends
 }
 
 func (r *chatRepo) CreateChat(chat models.Chat) (models.Chat, error) {

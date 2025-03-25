@@ -23,6 +23,10 @@ func NewFriendshipService(friendshipRepo database.FriendshipRepo) FriendshipServ
 	}
 }
 
+func (s *friendshipService) IsFriends(userID1, userID2 string) (bool, error) {
+	return s.friendshipRepo.IsFriends(userID1, userID2)
+}
+
 func (s *friendshipService) AddFriendship(userID1, userID2 string) (models.Friendship, error) {
 	if userID1 == userID2 {
 		return models.Friendship{}, fmt.Errorf("cannot send friend request to yourself")
