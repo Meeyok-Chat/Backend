@@ -99,12 +99,12 @@ func (cc *chatController) GetChatById(c *gin.Context) {
 // @Tags         chats
 // @Accept       json
 // @Produce      json
-// @Param        type   query     string  true  "Type of chat (group, friend, non-friend)"
+// @Param        type   path     string  true  "Type of chat (group, friend, non-friend)"
 // @Security     Bearer
 // @Success      200  {array}   models.Chat
 // @Failure      400  {object}  models.HTTPError
 // @Failure      500  {object}  models.HTTPError
-// @Router       /chats/user [get]
+// @Router       /chats/user/{type} [get]
 func (cc *chatController) GetUserChats(c *gin.Context) {
 	email, ok := c.Get("email")
 	if !ok {
@@ -125,7 +125,9 @@ func (cc *chatController) GetUserChats(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
-
+	if chats == nil {
+		chats = []models.Chat{}
+	}
 	c.JSON(http.StatusOK, chats)
 }
 
