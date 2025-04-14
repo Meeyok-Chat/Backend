@@ -37,7 +37,7 @@ import (
 // @license.name  Apache 2.0
 // @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
 
-// @host      https://meeyok-cloudrun-image-719562346977.asia-southeast1.run.app
+// @host      meeyok-cloudrun-image-719562346977.asia-southeast1.run.app
 // @BasePath
 
 // @securityDefinitions.basic  BasicAuth
@@ -88,9 +88,7 @@ func main() {
 	routes.FriendshipRoute(r, middleware, FirebaseClient, friendshipService)
 	routes.PostRoute(r, middleware, FirebaseClient, postService)
 
-	r.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler,
-		ginSwagger.DefaultModelsExpandDepth(-1),
-	))
+	r.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	log.Fatal(r.Run(":" + configs.GetEnv("PORT")))
 }
