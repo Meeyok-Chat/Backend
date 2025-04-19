@@ -21,7 +21,7 @@ func UserRoute(r *gin.Engine, middleware middleware.AuthMiddleware, client *auth
 		rgu.GET("/username/:username", userController.GetUserByUsername)
 
 		rgu.PUT("/:id", userController.UpdateUser)
-		rgu.PATCH("/username/:id", userController.UpdateUsername)
+		rgu.PATCH("/:id/username", userController.UpdateUsername)
 
 		rgu.DELETE("/:id", userController.DeleteUser)
 	}
