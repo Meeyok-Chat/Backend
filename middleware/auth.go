@@ -78,6 +78,7 @@ func (s authMiddleware) processToken(ctx *gin.Context, client *auth.Client, toke
 	}
 	log.Println("auth email is ", email)
 
+	userId, userIdOk := token.Claims["id"].(string)
 	role, roleOk := token.Claims["role"].(string)
 	username, usernameOk := token.Claims["name"].(string)
 
@@ -138,6 +139,12 @@ func (s authMiddleware) processToken(ctx *gin.Context, client *auth.Client, toke
 		}
 	}
 
+	if !userIdOk {
+		user, _ := s.userService.GetUserByEmail(email)
+		userId = user.ID.Hex()
+	}
+
+	ctx.Set("id", userId)
 	ctx.Set("email", email)
 	ctx.Set("role", role)
 	ctx.Set("token", tokenID)
