@@ -19,8 +19,6 @@ type UserController interface {
 	GetUserByToken(c *gin.Context)
 	GetUserByUsername(c *gin.Context)
 
-	CreateUser(c *gin.Context)
-
 	UpdateUser(c *gin.Context)
 	UpdateUsername(c *gin.Context)
 
@@ -119,31 +117,6 @@ func (uc userController) GetUserByUsername(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, result)
-}
-
-// CreateUser godoc
-// @Summary      Create a new user
-// @Description  Registers a new user in the system
-// @Tags         users
-// @Accept       json
-// @Produce      json
-// @Param        user  body      models.User  true  "User details"
-// @Success      200   {object}  map[string]string
-// @Failure      400   {object}  models.HTTPError  "Bad Request"
-// @Failure      500   {object}  models.HTTPError
-// @Router       /users [post]
-func (uc userController) CreateUser(c *gin.Context) {
-	userDTO := models.User{}
-	if err := c.ShouldBindJSON(&userDTO); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
-		return
-	}
-
-	if err := uc.userService.CreateUser(userDTO); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"message": "User created"})
 }
 
 // UpdateUser godoc
