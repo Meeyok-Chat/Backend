@@ -63,7 +63,7 @@ func main() {
 	// Initialize a new services
 	chatService := chat.NewChatService(chatRepo)
 	userService := user.NewUserService(userRepo)
-	friendshipService := friendship.NewFriendshipService(friendshipRepo)
+	friendshipService := friendship.NewFriendshipService(friendshipRepo, userRepo)
 	postService := post.NewPostService(postRepo, userRepo)
 
 	// Initialize a queue Publisher

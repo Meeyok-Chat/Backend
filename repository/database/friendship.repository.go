@@ -19,6 +19,8 @@ type friendshipRepo struct {
 
 type FriendshipRepo interface {
 	IsFriends(userID1, userID2 string) (bool, error)
+	FindPendingFriendshipBetween(userID1, userID2 string) (models.Friendship, error)
+	GetFriendshipsByStatus(userID, status string) ([]models.Friendship, error)
 	CreateFriendship(userID1, userID2 string) (models.Friendship, error)
 	UpdateFriendshipStatus(friendshipID string, status string) (models.Friendship, error)
 }
@@ -50,6 +52,56 @@ func (s *friendshipRepo) IsFriends(userID1, userID2 string) (bool, error) {
 	}
 
 	return true, nil // They are friends
+}
+
+func (r *friendshipRepo) FindPendingFriendshipBetween(userID1, userID2 string) (models.Friendship, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	filter := bson.M{
+		"$or": []bson.M{
+			{"userId1": userID1, "userId2": userID2},
+			{"userId1": userID2, "userId2": userID1},
+		},
+		"status": models.FriendshipPending,
+	}
+
+	var friendship models.Friendship
+	err := r.database.FindOne(ctx, filter).Decode(&friendship)
+	if err != nil {
+		return models.Friendship{}, err
+	}
+	return friendship, nil
+}
+
+func (r *friendshipRepo) GetFriendshipsByStatus(userID, status string) ([]models.Friendship, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	filter := bson.M{
+		"$and": []bson.M{
+			{
+				"$or": []bson.M{
+					{"userId1": userID},
+					{"userId2": userID},
+				},
+			},
+			{"status": status},
+		},
+	}
+
+	cursor, err := r.database.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var friendships []models.Friendship
+	if err = cursor.All(ctx, &friendships); err != nil {
+		return nil, err
+	}
+
+	return friendships, nil
 }
 
 func (r *friendshipRepo) CreateFriendship(userID1, userID2 string) (models.Friendship, error) {
