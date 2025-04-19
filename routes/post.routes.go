@@ -17,7 +17,7 @@ func PostRoute(r *gin.Engine, middleware middleware.AuthMiddleware, client *auth
 		rgc.GET("/", postController.GetPosts)
 		rgc.GET("/:id", postController.GetPostByID)
 		rgc.POST("", postController.CreatePost)
-		rgc.PATCH("/:id", postController.UpdatePost)
+		rgc.PUT("/:id", postController.UpdatePost)
 		rgc.DELETE("/:id", postController.DeletePost)
 	}
 }

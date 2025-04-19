@@ -21,9 +21,9 @@ func ChatRoute(r *gin.Engine, middleware middleware.AuthMiddleware, client *auth
 		rgc.GET("/user/:type", chatController.GetUserChats)
 
 		rgc.POST("", chatController.CreateChat)
-		rgc.PATCH("/addusers/:id", chatController.AddUsersToChat)
+		rgc.POST("/:id/users", chatController.AddUsersToChat)
 
-		rgc.PATCH("/:id", chatController.UpdateChat)
+		rgc.PUT("/:id", chatController.UpdateChat)
 		rgc.DELETE("/:id", chatController.DeleteChat)
 
 		// rgc.GET("/message", chatController.GetMessages)
