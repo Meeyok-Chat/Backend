@@ -19,6 +19,7 @@ type userRepo struct {
 type UserRepo interface {
 	GetUsers() ([]models.User, error)
 	GetUserByID(id string) (models.User, error)
+	GetUsersByIDs(userIDs []string) ([]models.User, error)
 	GetUserByEmail(email string) (models.User, error)
 	GetUserByUsername(username string) (models.User, error)
 
@@ -72,6 +73,33 @@ func (r *userRepo) GetUserByID(id string) (models.User, error) {
 		return models.User{}, err
 	}
 	return u, nil
+}
+
+func (r *userRepo) GetUsersByIDs(userIDs []string) ([]models.User, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	objectIDs := []primitive.ObjectID{}
+	for _, id := range userIDs {
+		objID, err := primitive.ObjectIDFromHex(id)
+		if err != nil {
+			continue
+		}
+		objectIDs = append(objectIDs, objID)
+	}
+
+	filter := bson.M{"_id": bson.M{"$in": objectIDs}}
+	cursor, err := r.database.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var users []models.User
+	if err := cursor.All(ctx, &users); err != nil {
+		return nil, err
+	}
+	return users, nil
 }
 
 func (r *userRepo) GetUserByEmail(email string) (models.User, error) {
