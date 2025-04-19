@@ -50,7 +50,7 @@ func (ws *websocketController) checkOrigin(r *http.Request) bool {
 // @Success      200  {object}  map[string]string
 // @Failure      400  {object}  models.HTTPError  "Bad Request"
 // @Failure      500  {object}  models.HTTPError  "Internal Server Error"
-// @Router       /ws/init [post]
+// @Router       /ws/init [get]
 func (ws *websocketController) InitWebsocket(c *gin.Context) {
 	userID, exists := c.Get("user")
 	if !exists {
@@ -78,7 +78,7 @@ func (ws *websocketController) InitWebsocket(c *gin.Context) {
 // @Success      101     "Switching Protocols"
 // @Failure      400     {object}  models.HTTPError  "Bad Request"
 // @Failure      500     {object}  models.HTTPError  "Internal Server Error"
-// @Router       /ws/{userID} [get]ns
+// @Router       /ws/{userID} [get]
 func (ws *websocketController) ServeWS(c *gin.Context) {
 	userID := c.Param("userID")
 
