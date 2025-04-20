@@ -52,7 +52,7 @@ func (ws *websocketController) checkOrigin(r *http.Request) bool {
 // @Failure      500  {object}  models.HTTPError  "Internal Server Error"
 // @Router       /ws/init [get]
 func (ws *websocketController) InitWebsocket(c *gin.Context) {
-	userID, exists := c.Get("user")
+	userID, exists := c.Get("id")
 	if !exists {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "User not found"})
 		return
