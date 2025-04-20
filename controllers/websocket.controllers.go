@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"slices"
+	"strings"
 
 	"github.com/Meeyok-Chat/backend/configs"
 	"github.com/Meeyok-Chat/backend/services/chat"
@@ -31,13 +33,10 @@ func NewWebsocketController(websocketManagerService Websocket.ManagerService, ch
 }
 
 func (ws *websocketController) checkOrigin(r *http.Request) bool {
+	allowedOrigins := strings.Split(configs.GetEnv("FRONTEND_URLS"), ",")
 	origin := r.Header.Get("Origin")
-	switch origin {
-	case configs.GetEnv("FRONTEND_URL"):
-		return true
-	default:
-		return false
-	}
+
+	return slices.Contains(allowedOrigins, origin)
 }
 
 // InitWebsocket godoc
