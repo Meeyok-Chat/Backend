@@ -161,7 +161,7 @@ func (cc *chatController) CreateChat(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Chat created"})
+	c.JSON(http.StatusOK, chat)
 }
 
 // AddUsersToChat godoc
