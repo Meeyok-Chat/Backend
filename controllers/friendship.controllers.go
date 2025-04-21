@@ -74,10 +74,14 @@ func (c *friendshipController) GetFriendsByStatusHandler(ctx *gin.Context) {
 // @Failure      500   {object}  models.HTTPError
 // @Router       /friendships [post]
 func (c *friendshipController) AddFriendshipHandler(ctx *gin.Context) {
-	userID1 := ctx.Query("id1")
-	userID2 := ctx.Query("id2")
+	userID1, ok := ctx.Get("id")
+	if !ok {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "User not found"})
+		return
+	}
+	userID2 := ctx.Param("id")
 
-	friendship, err := c.friendshipService.AddFriendship(userID1, userID2)
+	friendship, err := c.friendshipService.AddFriendship(userID1.(string), userID2)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

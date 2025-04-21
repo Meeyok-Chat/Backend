@@ -37,7 +37,7 @@ func (s *friendshipService) GetFriends(userID, status string) ([]models.User, er
 
 	friendIDs := []string{}
 	for _, f := range friendships {
-		if status == models.FriendshipPending {
+		if status == models.FriendshipPending && f.UserID1 != userID {
 			friendIDs = append(friendIDs, f.UserID1)
 		} else if status == models.FriendshipAccepted {
 			if f.UserID1 != userID {
@@ -68,5 +68,5 @@ func (s *friendshipService) UpdateFriendshipStatus(userID, friendID, status stri
 		return models.Friendship{}, fmt.Errorf("friendship is not in pending status")
 	}
 
-	return s.friendshipRepo.UpdateFriendshipStatus(friendship.ID.Hex(), models.FriendshipAccepted)
+	return s.friendshipRepo.UpdateFriendshipStatus(friendship.ID.Hex(), status)
 }
