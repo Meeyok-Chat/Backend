@@ -80,12 +80,7 @@ func (r *friendshipRepo) GetFriendshipsByStatus(userID, status string) ([]models
 
 	filter := bson.M{
 		"$and": []bson.M{
-			{
-				"$or": []bson.M{
-					{"userId1": userID},
-					{"userId2": userID},
-				},
-			},
+			{"userId2": userID},
 			{"status": status},
 		},
 	}
