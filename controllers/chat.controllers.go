@@ -172,7 +172,7 @@ func (cc *chatController) CreateChat(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Param        id    path      string          true "Chat ID"
-// @Param        users body      AddUsersRequest true "List of user IDs to add"
+// @Param        users body      dtos.AddUsersRequest true "List of user IDs to add"
 // @Security     Bearer
 // @Success      200   {object}  map[string]string
 // @Failure      400   {object}  models.HTTPError
