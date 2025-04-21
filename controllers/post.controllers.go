@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 
+	"github.com/Meeyok-Chat/backend/dtos"
 	"github.com/Meeyok-Chat/backend/models"
 	service "github.com/Meeyok-Chat/backend/services/post"
 	"github.com/gin-gonic/gin"
@@ -63,31 +64,42 @@ func (p *postController) GetPostByID(c *gin.Context) {
 	c.JSON(http.StatusOK, post)
 }
 
-// @Summary Create a new post
-// @Tags posts
-// @Accept json
-// @Produce json
-// @Param post body models.Post true "Post details"
-// @Success 200 {object} map[string]string
-// @Failure 400 {object} map[string]string
-// @Router /posts [post]
+// CreatePost godoc
+// @Summary      Create a new post
+// @Description  Creates a new post and associates it with the authenticated user
+// @Tags         posts
+// @Accept       json
+// @Produce      json
+// @Param        post  body      dtos.CreatePostRequest  true  "Post details"
+// @Security     Bearer
+// @Success      200   {object}  models.Post
+// @Failure      400   {object}  models.HTTPError
+// @Failure      500   {object}  models.HTTPError
+// @Router       /posts [post]
 func (p *postController) CreatePost(c *gin.Context) {
-	post := models.Post{}
+	userID, ok := c.Get("id")
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "User not found"})
+		return
+	}
+
+	post := dtos.CreatePostRequest{}
 	if err := c.ShouldBindJSON(&post); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
 	}
-	createdPost, err := p.postService.CreatePost(post)
+
+	createdPost, err := p.postService.CreatePost(userID.(string), post)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	err = p.postService.AddPostToUser(post.UserID, createdPost.ID.Hex())
+	err = p.postService.AddPostToUser(createdPost.UserID, createdPost.ID.Hex())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Post created successfully"})
+	c.JSON(http.StatusOK, createdPost)
 }
 
 // @Summary Update a post
