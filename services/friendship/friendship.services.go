@@ -37,7 +37,15 @@ func (s *friendshipService) GetFriends(userID, status string) ([]models.User, er
 
 	friendIDs := []string{}
 	for _, f := range friendships {
-		friendIDs = append(friendIDs, f.UserID1)
+		if status == models.FriendshipPending {
+			friendIDs = append(friendIDs, f.UserID1)
+		} else if status == models.FriendshipAccepted {
+			if f.UserID1 != userID {
+				friendIDs = append(friendIDs, f.UserID1)
+			} else {
+				friendIDs = append(friendIDs, f.UserID2)
+			}
+		}
 	}
 
 	return s.userRepo.GetUsersByIDs(friendIDs)
