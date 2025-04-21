@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/Meeyok-Chat/backend/dtos"
 	"github.com/Meeyok-Chat/backend/models"
 	"github.com/Meeyok-Chat/backend/services/chat"
 	"github.com/Meeyok-Chat/backend/services/user"
@@ -137,14 +138,14 @@ func (cc *chatController) GetUserChats(c *gin.Context) {
 // @Tags         chats
 // @Accept       json
 // @Produce      json
-// @Param        chat  body      models.Chat  true  "Chat details"
+// @Param        chat  body      dtos.CreateChatRequest  true  "Chat details"
 // @Security     Bearer
-// @Success      200   {object}  map[string]string
+// @Success      200   {object}  models.Chat
 // @Failure      400   {object}  models.HTTPError
 // @Failure      500   {object}  models.HTTPError
 // @Router       /chats [post]
 func (cc *chatController) CreateChat(c *gin.Context) {
-	chatDTO := models.Chat{}
+	chatDTO := dtos.CreateChatRequest{}
 	if err := c.ShouldBindJSON(&chatDTO); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
@@ -170,8 +171,8 @@ func (cc *chatController) CreateChat(c *gin.Context) {
 // @Tags         chats
 // @Accept       json
 // @Produce      json
-// @Param        id     path      string    true  "Chat ID"
-// @Param        users  body      object    true  "List of user IDs to add"  schema({"type":"object","properties":{"users":{"type":"array","items":{"type":"string"}}}})
+// @Param        id    path      string          true "Chat ID"
+// @Param        users body      AddUsersRequest true "List of user IDs to add"
 // @Security     Bearer
 // @Success      200   {object}  map[string]string
 // @Failure      400   {object}  models.HTTPError
@@ -184,9 +185,7 @@ func (cc *chatController) AddUsersToChat(c *gin.Context) {
 		return
 	}
 
-	var req struct {
-		Users []string `json:"users"`
-	}
+	var req dtos.AddUsersRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return

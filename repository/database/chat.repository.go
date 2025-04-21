@@ -240,8 +240,8 @@ func (r *chatRepo) CreateChat(chat models.Chat) (models.Chat, error) {
 	defer cancel()
 
 	chat.ID = primitive.NewObjectID()
-	chat.Messages = make([]models.Message, 0)
 	chat.UpdatedAt = time.Now()
+
 	_, err := r.chatDb.InsertOne(ctx, chat)
 	if err != nil {
 		return models.Chat{}, err

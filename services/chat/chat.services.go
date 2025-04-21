@@ -3,6 +3,7 @@ package chat
 import (
 	"errors"
 
+	"github.com/Meeyok-Chat/backend/dtos"
 	"github.com/Meeyok-Chat/backend/models"
 	"github.com/Meeyok-Chat/backend/repository/database"
 )
@@ -16,7 +17,7 @@ type ChatService interface {
 	GetChatById(id string, page int, numberOfMessages int) (models.Chat, error)
 	GetUserChats(userID string, chatType string) ([]models.Chat, error)
 	GetMessages(id string, page int, numberOfMessages int) ([]models.Message, error)
-	CreateChat(chat models.Chat) (models.Chat, error)
+	CreateChat(chat dtos.CreateChatRequest) (models.Chat, error)
 	AddUsersToChat(chatID string, users []string) error
 	UpdateChat(chat models.Chat) error
 	DeleteChat(id string) error
@@ -74,7 +75,14 @@ func (cs *chatService) GetUserChats(userID string, chatType string) ([]models.Ch
 	}
 }
 
-func (cs *chatService) CreateChat(chat models.Chat) (models.Chat, error) {
+func (cs *chatService) CreateChat(chatDto dtos.CreateChatRequest) (models.Chat, error) {
+	chat := models.Chat{
+		Name:     chatDto.Name,
+		Users:    chatDto.Users,
+		Type:     chatDto.Type,
+		Messages: []models.Message{},
+	}
+
 	result, err := cs.chatRepo.CreateChat(chat)
 	if err != nil {
 		return models.Chat{}, err
