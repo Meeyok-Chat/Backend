@@ -1,0 +1,45 @@
+name: Deploy to Cloud Run
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [closed]
+
+jobs:
+  deploy:
+    # Only run this job if the PR was merged (not just closed without merging)
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Set up Google Cloud SDK
+      uses: google-github-actions/setup-gcloud@v1
+      with:
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+        service_account_key: ${{ secrets.GCP_SA_KEY }}
+        export_default_credentials: true
+        
+    - name: Configure Docker for Artifact Registry
+      run: gcloud auth configure-docker asia-southeast1-docker.pkg.dev
+      
+    - name: Build with Docker Compose
+      run: docker compose -f docker-compose.yml build
+      
+    - name: Tag Docker image
+      run: docker tag go asia-southeast1-docker.pkg.dev/meeyok/meeyok/meeyok-cloudrun-image:${{ github.sha }}
+      
+    - name: Push Docker image
+      run: docker push asia-southeast1-docker.pkg.dev/meeyok/meeyok/meeyok-cloudrun-image:${{ github.sha }}
+      
+    - name: Deploy to Cloud Run
+      run: |
+        gcloud run deploy meeyok-cloudrun \
+          --image asia-southeast1-docker.pkg.dev/meeyok/meeyok/meeyok-cloudrun-image:${{ github.sha }} \
+          --platform managed \
+          --region asia-southeast1 \
+          --set-env-vars="MONGODB_URI=${{ secrets.MONGODB_URI }},FRONTEND_URL=${{ secrets.FRONTEND_URL }},APP_MODE=${{ secrets.APP_MODE }},PORT=${{ secrets.PORT }},SECRET_NAME=${{ secrets.SECRET_NAME }},CREDENTIALS_PATH=${{ secrets.CREDENTIALS_PATH }}" \
+          --allow-unauthenticated
