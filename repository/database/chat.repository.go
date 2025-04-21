@@ -79,7 +79,9 @@ func (r *chatRepo) GetChats() ([]models.Chat, error) {
 	defer cancel()
 
 	filter := bson.M{}
-	cursor, err := r.chatDb.Find(ctx, filter)
+	opts := options.Find().SetSort(bson.D{{Key: "updatedAt", Value: -1}})
+
+	cursor, err := r.chatDb.Find(ctx, filter, opts)
 	if err != nil {
 		return nil, err
 	}
