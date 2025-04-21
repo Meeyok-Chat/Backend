@@ -15,8 +15,8 @@ func FriendshipRoute(r *gin.Engine, middleware middleware.AuthMiddleware, client
 	rgc.Use(middleware.Auth(client))
 	{
 		rgc.GET(":status", friendshipController.GetFriendsByStatusHandler)
-		rgc.POST("", friendshipController.AddFriendshipHandler)
-		rgc.PATCH("/accept/:id", friendshipController.AcceptFriendshipHandler)
-		rgc.PATCH("/reject/:id", friendshipController.RejectFriendshipHandler)
+		rgc.POST("/:id", friendshipController.AddFriendshipHandler)
+		rgc.PATCH("/accept/:userId", friendshipController.AcceptFriendshipHandler)
+		rgc.PATCH("/reject/:userId", friendshipController.RejectFriendshipHandler)
 	}
 }
