@@ -60,7 +60,7 @@ func (r *friendshipRepo) FindPendingFriendshipBetween(userID1, userID2 string) (
 
 	filter := bson.M{
 		"$or": []bson.M{
-			{"userId1": userID1, "userId2": userID2},
+			// {"userId1": userID1, "userId2": userID2},
 			{"userId1": userID2, "userId2": userID1},
 		},
 		"status": models.FriendshipPending,
