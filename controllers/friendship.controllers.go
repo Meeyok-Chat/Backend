@@ -56,8 +56,11 @@ func (c *friendshipController) GetFriendsByStatusHandler(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
-	ctx.JSON(http.StatusOK, users)
+	if len(users) == 0 {
+		ctx.JSON(http.StatusOK, []models.User{})
+	} else {
+		ctx.JSON(http.StatusOK, users)
+	}
 }
 
 // AddFriendshipHandler godoc
