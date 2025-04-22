@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"regexp"
 	"sync"
 	"time"
 
@@ -174,12 +175,15 @@ func (ms *managerService) SendMessageHandler(event models.Event, c *models.Clien
 
 	// Check if the message is base64 encoded and decode if it is
 	var message string
-	if _, err := base64.StdEncoding.DecodeString(chatevent.Message); err == nil {
+	if regexp.MustCompile(`^[A-Za-z0-9+/]*={0,2}$`).MatchString(chatevent.Message) &&
+		len(chatevent.Message)%4 == 0 && len(chatevent.Message) > 0 {
 		decodedMessage, err := base64.StdEncoding.DecodeString(chatevent.Message)
-		if err != nil {
-			return fmt.Errorf("failed to decode message: %v", err)
+		if err == nil {
+			// Optionally add additional validation to make sure decoded result makes sense
+			message = string(decodedMessage)
+		} else {
+			message = chatevent.Message
 		}
-		message = string(decodedMessage)
 	} else {
 		message = chatevent.Message
 	}
