@@ -163,7 +163,9 @@ func (cc *chatController) CreateChat(c *gin.Context) {
 		return
 	}
 
-	cc.websocketManager.SendNewGroupHandler(chat.ID.Hex())
+	if chat.Type == "group" {
+		cc.websocketManager.SendNewGroupHandler(chat.ID.Hex())
+	}
 	c.JSON(http.StatusOK, chat)
 }
 
