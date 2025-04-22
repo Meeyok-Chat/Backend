@@ -29,6 +29,9 @@ const (
 	EventNewMessage  = "new_message"
 
 	EventSendMessageToMeeyok = "send_message_to_meeyok"
+
+	EventNewUser   = "new_user"
+	EventLeaveUser = "leave_user"
 )
 
 type EventHandler func(event Event, c *Client) error
@@ -43,4 +46,8 @@ type SendMessageEvent struct {
 	Message   string    `json:"message"`
 	From      string    `json:"from"`
 	CreatedAt time.Time `json:"createAt"`
+}
+
+type NewUserStatusEvent struct {
+	UserID string `json:"user_id"`
 }
