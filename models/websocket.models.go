@@ -29,6 +29,9 @@ const (
 	EventNewMessage  = "new_message"
 
 	EventSendMessageToMeeyok = "send_message_to_meeyok"
+
+	EventNewUser   = "new_user"
+	EventLeaveUser = "leave_user"
 )
 
 type EventHandler func(event Event, c *Client) error

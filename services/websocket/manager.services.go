@@ -124,6 +124,8 @@ func (ms *managerService) AddClient(conn *websocket.Conn, c *gin.Context, userID
 
 	// Add Client
 	ms.clients[clientService.GetClient()] = true
+
+	ms.SendUserStatusHandler(user.ID.Hex(), models.EventNewUser)
 }
 
 func (ms *managerService) GetClients() []models.User {
@@ -155,6 +157,8 @@ func (ms *managerService) RemoveClient(client *models.Client) {
 		// remove
 		delete(ms.clients, client)
 		log.Println("delete client for :", client.User.ID.Hex())
+
+		ms.SendUserStatusHandler(client.User.ID.Hex(), models.EventLeaveUser)
 	}
 }
 
@@ -241,4 +245,22 @@ func (ms *managerService) sendEventToQueue(chatID string) {
 	}
 
 	ms.queuePublisher.SQSSendMessage(outgoingEvent)
+}
+
+// Event
+func (ms *managerService) SendUserStatusHandler(userId string, eventType string) error {
+	data, err := json.Marshal(userId)
+	if err != nil {
+		return fmt.Errorf("failed to marshal broadcast message: %v", err)
+	}
+
+	// Place payload into an Event
+	var outgoingEvent models.Event
+	outgoingEvent.Payload = data
+	outgoingEvent.Type = eventType
+
+	for client := range ms.clients {
+		client.Egress <- outgoingEvent
+	}
+	return nil
 }
