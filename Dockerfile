@@ -11,14 +11,13 @@ RUN go install github.com/swaggo/swag/cmd/swag@latest
 
 # Download dependencies
 
-
 # Copy the entire project
 COPY . ./
 
 RUN go mod tidy
 
 # Generate Swagger documentation inside the cmd/docs directory
-RUN swag init -g cmd/main.go -o cmd/docs
+# RUN swag init -g cmd/main.go -o cmd/docs
 
 # Build the Go application binary
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /app/docker-gs-ping ./cmd/main.go
