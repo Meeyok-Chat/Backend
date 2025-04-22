@@ -249,7 +249,10 @@ func (ms *managerService) sendEventToQueue(chatID string) {
 
 // Event
 func (ms *managerService) SendUserStatusHandler(userId string, eventType string) error {
-	data, err := json.Marshal(userId)
+	payload := models.NewUserStatusEvent{
+		UserID: userId,
+	}
+	data, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("failed to marshal broadcast message: %v", err)
 	}

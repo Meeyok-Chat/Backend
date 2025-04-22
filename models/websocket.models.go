@@ -47,3 +47,7 @@ type SendMessageEvent struct {
 	From      string    `json:"from"`
 	CreatedAt time.Time `json:"createAt"`
 }
+
+type NewUserStatusEvent struct {
+	UserID string `json:"user_id"`
+}
