@@ -11,6 +11,7 @@ import (
 func EnableCORS() gin.HandlerFunc {
 	// Parse allowed origins from environment variable
 	allowedOrigins := strings.Split(GetEnv("FRONTEND_URLS"), ",")
+	allowedOrigins = append(allowedOrigins, "https://meeyok-frontend.pages.dev/") // TODO: move this to env
 
 	return func(c *gin.Context) {
 		origin := c.Request.Header.Get("Origin")
