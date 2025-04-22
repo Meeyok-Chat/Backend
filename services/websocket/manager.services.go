@@ -2,12 +2,10 @@ package Websocket
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
-	"regexp"
 	"sync"
 	"time"
 
@@ -172,21 +170,7 @@ func (ms *managerService) SendMessageHandler(event models.Event, c *models.Clien
 	if err := json.Unmarshal(event.Payload, &chatevent); err != nil {
 		return fmt.Errorf("bad payload in request: %v", err)
 	}
-
-	// Check if the message is base64 encoded and decode if it is
-	var message string
-	if regexp.MustCompile(`^[A-Za-z0-9+/]*={0,2}$`).MatchString(chatevent.Message) &&
-		len(chatevent.Message)%4 == 0 && len(chatevent.Message) > 0 {
-		decodedMessage, err := base64.StdEncoding.DecodeString(chatevent.Message)
-		if err == nil {
-			// Optionally add additional validation to make sure decoded result makes sense
-			message = string(decodedMessage)
-		} else {
-			message = chatevent.Message
-		}
-	} else {
-		message = chatevent.Message
-	}
+	message := chatevent.Message
 
 	chatevent.CreatedAt = time.Now()
 
