@@ -39,6 +39,8 @@ type ManagerService interface {
 	GetClients() []models.User
 
 	SendMessageHandler(event models.Event, c *models.Client) error
+	SendUserStatusHandler(userId string, eventType string) error
+	SendNewGroupHandler(chatID string) error
 }
 
 // NewManager is used to initalize all the values inside the manager
@@ -247,7 +249,6 @@ func (ms *managerService) sendEventToQueue(chatID string) {
 	ms.queuePublisher.SQSSendMessage(outgoingEvent)
 }
 
-// Event
 func (ms *managerService) SendUserStatusHandler(userId string, eventType string) error {
 	payload := models.NewUserStatusEvent{
 		UserID: userId,
@@ -261,6 +262,26 @@ func (ms *managerService) SendUserStatusHandler(userId string, eventType string)
 	var outgoingEvent models.Event
 	outgoingEvent.Payload = data
 	outgoingEvent.Type = eventType
+
+	for client := range ms.clients {
+		client.Egress <- outgoingEvent
+	}
+	return nil
+}
+
+func (ms *managerService) SendNewGroupHandler(chatID string) error {
+	payload := models.NewGroupEvent{
+		ChatID: chatID,
+	}
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal broadcast message: %v", err)
+	}
+
+	// Place payload into an Event
+	var outgoingEvent models.Event
+	outgoingEvent.Payload = data
+	outgoingEvent.Type = models.EventNewGroup
 
 	for client := range ms.clients {
 		client.Egress <- outgoingEvent

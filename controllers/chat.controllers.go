@@ -162,6 +162,8 @@ func (cc *chatController) CreateChat(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
+
+	cc.websocketManager.SendNewGroupHandler(chat.ID.Hex())
 	c.JSON(http.StatusOK, chat)
 }
 

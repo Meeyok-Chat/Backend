@@ -32,6 +32,8 @@ const (
 
 	EventNewUser   = "new_user"
 	EventLeaveUser = "leave_user"
+
+	EventNewGroup = "new_group"
 )
 
 type EventHandler func(event Event, c *Client) error
@@ -50,4 +52,8 @@ type SendMessageEvent struct {
 
 type NewUserStatusEvent struct {
 	UserID string `json:"user_id"`
+}
+
+type NewGroupEvent struct {
+	ChatID string `json:"chat_id"`
 }
