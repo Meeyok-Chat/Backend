@@ -3,8 +3,7 @@ package docs
 
 import "github.com/swaggo/swag"
 
-const docTemplate = `
-{
+const docTemplate = `{
     "schemes": {{ marshal .Schemes }},
     "openapi": "3.0.1",
     "info": {
@@ -28,7 +27,7 @@ const docTemplate = `
     },
     "servers": [
       {
-        "url": "https://meeyok-cloudrun-image-719562346977.asia-southeast1.run.app/"
+        "url": "//meeyok-cloudrun-image-719562346977.asia-southeast1.run.app/"
       }
     ],
     "paths": {
@@ -70,65 +69,6 @@ const docTemplate = `
             }
           ]
         },
-        "put": {
-          "tags": [
-            "chats"
-          ],
-          "summary": "Update a chat",
-          "description": "Updates the details of an existing chat",
-          "requestBody": {
-            "description": "Updated chat details",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/models.Chat"
-                }
-              }
-            },
-            "required": true
-          },
-          "responses": {
-            "200": {
-              "description": "OK",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "type": "object",
-                    "additionalProperties": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            },
-            "400": {
-              "description": "Bad Request",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/models.HTTPError"
-                  }
-                }
-              }
-            },
-            "500": {
-              "description": "Internal Server Error",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/models.HTTPError"
-                  }
-                }
-              }
-            }
-          },
-          "security": [
-            {
-              "Bearer": []
-            }
-          ],
-          "x-codegen-request-body-name": "chat"
-        },
         "post": {
           "tags": [
             "chats"
@@ -140,7 +80,7 @@ const docTemplate = `
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/models.Chat"
+                  "$ref": "#/components/schemas/dtos.CreateChatRequest"
                 }
               }
             },
@@ -152,10 +92,7 @@ const docTemplate = `
               "content": {
                 "application/json": {
                   "schema": {
-                    "type": "object",
-                    "additionalProperties": {
-                      "type": "string"
-                    }
+                    "$ref": "#/components/schemas/models.Chat"
                   }
                 }
               }
@@ -323,6 +260,76 @@ const docTemplate = `
             }
           ]
         },
+        "put": {
+          "tags": [
+            "chats"
+          ],
+          "summary": "Update a chat",
+          "description": "Updates the details of an existing chat",
+          "parameters": [
+            {
+              "name": "id",
+              "in": "path",
+              "description": "Chat ID",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "requestBody": {
+            "description": "Updated chat details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/models.Chat"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Bad Request",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/models.HTTPError"
+                  }
+                }
+              }
+            },
+            "500": {
+              "description": "Internal Server Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/models.HTTPError"
+                  }
+                }
+              }
+            }
+          },
+          "security": [
+            {
+              "Bearer": []
+            }
+          ],
+          "x-codegen-request-body-name": "chat"
+        },
         "delete": {
           "tags": [
             "chats"
@@ -372,87 +379,6 @@ const docTemplate = `
           ]
         }
       },
-      "/chats/{id}/messages": {
-        "get": {
-          "tags": [
-            "chats"
-          ],
-          "summary": "Get messages in a chat",
-          "description": "Retrieves messages for a specific chat with pagination",
-          "parameters": [
-            {
-              "name": "id",
-              "in": "path",
-              "description": "Chat ID",
-              "required": true,
-              "schema": {
-                "type": "string"
-              }
-            },
-            {
-              "name": "page",
-              "in": "query",
-              "description": "Page number for pagination",
-              "schema": {
-                "type": "integer",
-                "default": 0
-              }
-            },
-            {
-              "name": "num-message",
-              "in": "query",
-              "description": "Number of messages per page",
-              "schema": {
-                "type": "integer",
-                "default": 10
-              }
-            }
-          ],
-          "responses": {
-            "200": {
-              "description": "OK",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/components/schemas/models.Message"
-                    }
-                  }
-                }
-              }
-            },
-            "400": {
-              "description": "Bad Request",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/models.HTTPError"
-                  }
-                }
-              }
-            },
-            "500": {
-              "description": "Internal Server Error",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/models.HTTPError"
-                  }
-                }
-              }
-            }
-          },
-          "security": [
-            {
-              "Bearer": []
-            },
-            {
-              "Bearer": []
-            }
-          ]
-        }
-      },
       "/chats/{id}/users": {
         "post": {
           "tags": [
@@ -476,7 +402,7 @@ const docTemplate = `
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/dtos.AddUsersRequest"
                 }
               }
             },
@@ -591,18 +517,18 @@ const docTemplate = `
           ]
         }
       },
-      "/friendships/{id}/accept": {
+      "/friendships/accept/{userId}": {
         "patch": {
           "tags": [
             "friendship"
           ],
           "summary": "Accept a friend request",
-          "description": "Accepts a pending friend request by updating the status",
+          "description": "Accepts a pending friend request between the current user and the specified user",
           "parameters": [
             {
-              "name": "id",
+              "name": "userId",
               "in": "path",
-              "description": "Friendship ID",
+              "description": "Friend's user ID",
               "required": true,
               "schema": {
                 "type": "string"
@@ -648,18 +574,18 @@ const docTemplate = `
           ]
         }
       },
-      "/friendships/{id}/reject": {
+      "/friendships/reject/{userId}": {
         "patch": {
           "tags": [
             "friendship"
           ],
           "summary": "Reject a friend request",
-          "description": "Rejects a pending friend request and removes it from the system",
+          "description": "Rejects a pending friend request between the current user and the specified user",
           "parameters": [
             {
-              "name": "id",
+              "name": "userId",
               "in": "path",
-              "description": "Friendship ID",
+              "description": "Friend's user ID",
               "required": true,
               "schema": {
                 "type": "string"
@@ -673,6 +599,66 @@ const docTemplate = `
                 "application/json": {
                   "schema": {
                     "$ref": "#/components/schemas/models.Friendship"
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Bad Request",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/models.HTTPError"
+                  }
+                }
+              }
+            },
+            "500": {
+              "description": "Internal Server Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/models.HTTPError"
+                  }
+                }
+              }
+            }
+          },
+          "security": [
+            {
+              "Bearer": []
+            }
+          ]
+        }
+      },
+      "/friendships/{status}": {
+        "get": {
+          "tags": [
+            "friendship"
+          ],
+          "summary": "Get list of friends with status filter",
+          "description": "Returns a list of users who are friends or pending with the given user",
+          "parameters": [
+            {
+              "name": "status",
+              "in": "path",
+              "description": "Friendship status: accepted, pending, or rejected",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/models.User"
+                    }
                   }
                 }
               }
@@ -748,12 +734,13 @@ const docTemplate = `
             "posts"
           ],
           "summary": "Create a new post",
+          "description": "Creates a new post and associates it with the authenticated user",
           "requestBody": {
             "description": "Post details",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/models.Post"
+                  "$ref": "#/components/schemas/dtos.CreatePostRequest"
                 }
               }
             },
@@ -765,10 +752,7 @@ const docTemplate = `
               "content": {
                 "application/json": {
                   "schema": {
-                    "type": "object",
-                    "additionalProperties": {
-                      "type": "string"
-                    }
+                    "$ref": "#/components/schemas/models.Post"
                   }
                 }
               }
@@ -778,15 +762,27 @@ const docTemplate = `
               "content": {
                 "application/json": {
                   "schema": {
-                    "type": "object",
-                    "additionalProperties": {
-                      "type": "string"
-                    }
+                    "$ref": "#/components/schemas/models.HTTPError"
+                  }
+                }
+              }
+            },
+            "500": {
+              "description": "Internal Server Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/models.HTTPError"
                   }
                 }
               }
             }
           },
+          "security": [
+            {
+              "Bearer": []
+            }
+          ],
           "x-codegen-request-body-name": "post"
         }
       },
@@ -976,60 +972,6 @@ const docTemplate = `
               "Bearer": []
             }
           ]
-        },
-        "post": {
-          "tags": [
-            "users"
-          ],
-          "summary": "Create a new user",
-          "description": "Registers a new user in the system",
-          "requestBody": {
-            "description": "User details",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/models.User"
-                }
-              }
-            },
-            "required": true
-          },
-          "responses": {
-            "200": {
-              "description": "OK",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "type": "object",
-                    "additionalProperties": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            },
-            "400": {
-              "description": "Bad Request",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/models.HTTPError"
-                  }
-                }
-              }
-            },
-            "500": {
-              "description": "Internal Server Error",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/models.HTTPError"
-                  }
-                }
-              }
-            }
-          },
-          "x-codegen-request-body-name": "user"
         }
       },
       "/users/me": {
@@ -1415,7 +1357,7 @@ const docTemplate = `
         }
       },
       "/ws/init": {
-        "post": {
+        "get": {
           "tags": [
             "websocket"
           ],
@@ -1519,6 +1461,73 @@ const docTemplate = `
     },
     "components": {
       "schemas": {
+        "dtos.AddUsersRequest": {
+          "required": [
+            "users"
+          ],
+          "type": "object",
+          "properties": {
+            "users": {
+              "type": "array",
+              "example": [
+                "user123",
+                "user456"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "dtos.CreateChatRequest": {
+          "required": [
+            "name",
+            "type",
+            "users"
+          ],
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "example": "Team Discussion"
+            },
+            "type": {
+              "type": "string",
+              "example": "Group",
+              "enum": [
+                "Individual",
+                "Group"
+              ]
+            },
+            "users": {
+              "type": "array",
+              "example": [
+                "user123",
+                "user456"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "dtos.CreatePostRequest": {
+          "required": [
+            "content",
+            "title"
+          ],
+          "type": "object",
+          "properties": {
+            "content": {
+              "type": "string",
+              "example": "Content of the post"
+            },
+            "title": {
+              "type": "string",
+              "example": "Title of the post"
+            }
+          }
+        },
         "models.Chat": {
           "type": "object",
           "properties": {
@@ -1635,12 +1644,6 @@ const docTemplate = `
             "email": {
               "type": "string"
             },
-            "friends": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
             "id": {
               "type": "string"
             },
@@ -1675,8 +1678,7 @@ const docTemplate = `
       }
     },
     "x-original-swagger-version": "2.0"
-  }
-`
+}`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
