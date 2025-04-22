@@ -34,6 +34,7 @@ func NewWebsocketController(websocketManagerService Websocket.ManagerService, ch
 
 func (ws *websocketController) checkOrigin(r *http.Request) bool {
 	allowedOrigins := strings.Split(configs.GetEnv("FRONTEND_URLS"), ",")
+	allowedOrigins = append(allowedOrigins, "https://meeyok-frontend.pages.dev/") // TODO: move this to env
 	origin := r.Header.Get("Origin")
 
 	return slices.Contains(allowedOrigins, origin)
