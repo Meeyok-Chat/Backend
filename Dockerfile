@@ -7,15 +7,15 @@ WORKDIR /app
 RUN go install github.com/swaggo/swag/cmd/swag@latest
 
 # Copy go.mod and go.sum to download dependencies
-COPY go.mod ./
+# COPY go.mod ./
 
 # Download dependencies
-RUN go mod tidy
 
-COPY go.sum ./
 
 # Copy the entire project
 COPY . ./
+
+RUN go mod tidy
 
 # Generate Swagger documentation inside the cmd/docs directory
 RUN swag init -g cmd/main.go -o cmd/docs
