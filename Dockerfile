@@ -7,7 +7,7 @@ WORKDIR /app
 RUN go install github.com/swaggo/swag/cmd/swag@latest
 
 # Copy go.mod and go.sum to download dependencies
-COPY go.mod go.sum ./
+COPY go.mod ./
 
 # Download dependencies
 RUN go mod tidy
